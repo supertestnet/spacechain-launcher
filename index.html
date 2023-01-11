@@ -139,19 +139,16 @@
             var chain_til_theft_or_blockheight = [];
             sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ] = "";
             sessionStorage[ "headers_synced" ] = "";
+            async function syncHeaders() {
+                await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
+                await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
+                sessionStorage[ "headers_synced" ] = true;
+            }
             if ( $_GET[ "chain" ] ) {
                 //the next line syncs headers until the first theft, if any
                 chain_til_theft_or_blockheight.push( $_GET[ "chain" ] );
-                returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
-                sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ] = true;
+                syncHeaders();
                 window.onload = view_network_home;
-            }
-            async function syncRemainingHeaders() {
-                //wait til sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ]
-                //is true before continuing
-                await getNote( "headers_synced_til_theft_or_current_blockheight" );
-                await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
-                sessionStorage[ "headers_synced" ] = true;
             }
             if ( $_GET[ "chain" ] && anchor_utxos_in_my_spacechain[ 0 ] != $_GET[ "chain" ] ) {
                 anchor_utxos_in_my_spacechain = [];
@@ -548,9 +545,10 @@
                 //get hash of previous spaceblock
                 var previous_blockhash = getSpacechainHashes()[ getSpacechainHashes().length - 1 ];
                 //get latest anchor txid
-                var anchor_tx = returnLatestAnchorTxidOrThatNewOneMustBeMade( latest_known_anchor_txid );
+                var latest_known_anchor_txid = anchor_utxos_in_my_spacechain[ anchor_utxos_in_my_spacechain.length - 1 ];
+                var anchor_tx = await returnLatestAnchorTxidOrThatNewOneMustBeMade( latest_known_anchor_txid );
                 if ( !anchor_tx ) {
-                    alert( "oh no, something went terribly wrong! Aborting" );
+                    alert( "oh no, something went terribly wrong! Aborting. Please ask a developer for help." );
                     return;
                 }
                 //check if the anchor utxo is where we expect it to be -- i.e. it should
@@ -570,8 +568,10 @@
                 } else {
                     var utxos = await getUTXOsInAddress( address, privkey, pubkey );
                     var utxo = utxos[ 0 ];
+                    console.log( preimage );
                     var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
                     //add the spaceblock's hash to bitcoin's blockchain
+                    console.log( "made it here", 1 );
                     var rawtx = getRawTxThatMovesAnchorOutput( utxo, anchor_tx, timelock, serverPubkey, pmthash, anchor_address, spaceblock_hash, preimage );
                     var txid = await pushBTCpmt( rawtx );
                     return txid;
