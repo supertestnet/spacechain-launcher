@@ -136,12 +136,28 @@
                 $( '.launch_page' ).style.display = "block";
                 $( '.launchpad' ).style.display = "flex";
             }
+            var chain_til_theft_or_blockheight = [];
+            sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ] = "";
+            sessionStorage[ "headers_synced" ] = "";
+            if ( $_GET[ "chain" ] ) {
+                //the next line syncs headers until the first theft, if any
+                chain_til_theft_or_blockheight.push( $_GET[ "chain" ] );
+                returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
+                sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ] = true;
+                window.onload = view_network_home;
+            }
+            async function syncRemainingHeaders() {
+                //wait til sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ]
+                //is true before continuing
+                await getNote( "headers_synced_til_theft_or_current_blockheight" );
+                await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
+                sessionStorage[ "headers_synced" ] = true;
+            }
             if ( $_GET[ "chain" ] && anchor_utxos_in_my_spacechain[ 0 ] != $_GET[ "chain" ] ) {
                 anchor_utxos_in_my_spacechain = [];
                 anchor_utxos_in_my_spacechain.push( $_GET[ "chain" ] );
                 localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
-                returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
-                window.onload = view_network_home;
+                syncRemainingHeaders();
             }
             async function getData( url ) {
                 var rtext = "";
@@ -197,6 +213,26 @@
                 return new Promise( function( resolve, reject ) {
                     setTimeout( function() { resolve( "" ); }, num );
                 });
+            }
+            async function getNote( item ) {
+                async function isNoteSetYet( note_i_seek ) {
+                    return new Promise( function( resolve, reject ) {
+                        if ( note_i_seek == "" ) {
+                            setTimeout( async function() {
+                                var msg = await isNoteSetYet( sessionStorage[ item ] );
+                                resolve( msg );
+                            }, 100 );
+                        } else {
+                            resolve( note_i_seek );
+                        }
+                    });
+                }
+                async function getTimeoutData() {
+                    var note_i_seek = await isNoteSetYet( sessionStorage[ item ] );
+                    return note_i_seek;
+                }
+                var returnable = await getTimeoutData();
+                return returnable;
             }
 
             async function pushBTCpmt( rawtx ) {
@@ -521,7 +557,7 @@
                 //be the first output of that transaction and it should be unspent
                 console.log( "anchor txid:", anchor_tx );
                 if ( anchor_tx == "make new one" ) {
-                    console.log( `oh no, the anchor was stolen! The value of anchor_was_stolen should be false but it is actually ` + anchor_was_stolen );
+                    console.log( `oh no, the anchor was stolen!` );
                     var utxos = await getUTXOsInAddress( address, privkey, pubkey );
                     var utxo = utxos[ 0 ];
                     //the utxo object is used like this: utxo[ "tx_id" ], utxo[ "output_number" ],
@@ -752,6 +788,16 @@
                 return new_anchor_tx;
             }
 
+            async function returnAnchorTxidsTilTheftOrCurrentBlockheight( chain ) {
+                var latest_known_anchor_txid = chain[ chain.length - 1 ];
+                var anchor_was_stolen = await anchorWasStolen( latest_known_anchor_txid );
+                if ( anchor_was_stolen ) return chain;
+                var new_anchor = await getNewAnchorTx( latest_known_anchor_txid );
+                if ( !new_anchor ) return chain;
+                chain.push( new_anchor );
+                return returnAnchorTxidsTilTheftOrCurrentBlockheight( chain );
+            }
+
             async function returnLatestAnchorTxidOrThatNewOneMustBeMade( latest_known_anchor_txid ) {
                 var anchor_was_stolen = await anchorWasStolen( latest_known_anchor_txid );
                 var recovery_anchor = "";
@@ -762,9 +808,6 @@
                     var block_after_theft = await getBlockAfterTheft( 15, num_of_known_spaceblocks + 1 );
                     if ( block_after_theft == "fork_alert" ) {
                         //resolve the fork and set block_after_theft equal to the real block (json-stingified)
-                        alert( "oh no, there was a fork!" );
-                        return;
-                        //return here after resolveFork() fixes the anchor_utxos_in_my_spacechain array
                         var hash_of_fork_block_1 = bitcoinjs.crypto.sha256( sessionStorage[ "potential_fork_block_1" ] ).toString( "hex" );
                         var hash_of_fork_block_2 = bitcoinjs.crypto.sha256( sessionStorage[ "potential_fork_block_2" ] ).toString( "hex" );
                         var block_after_theft = await resolveFork( hash_of_fork_block_1, hash_of_fork_block_2 );
@@ -913,6 +956,39 @@
                 }
             }
 
+            async function findWhichTxAppearedFirst( tx1, tx2 ) {
+                var tx_that_appeared_first = "";
+                var block_of_tx1 = await getData( `https://mempool.space/testnet/api/tx/${tx1}` );
+                block_of_tx1 = JSON.parse( block_of_tx1 )[ "status" ][ "block_height" ];
+                var block_of_tx2 = await getData( `https://mempool.space/testnet/api/tx/${tx2}` );
+                block_of_tx2 = JSON.parse( block_of_tx2 )[ "status" ][ "block_height" ];
+                if ( block_of_tx1 < block_of_tx2 ) return tx1;
+                if ( block_of_tx2 < block_of_tx1 ) return tx2;
+                //get all txs in the block and check if tx1 or tx2 appears first
+                block = await getData( `https://mempool.space/testnet/api/block-height/${block_of_tx1}` );
+                var block_info = await getData( `https://mempool.space/testnet/api/block/${block}` );
+                tx_count = JSON.parse( block_info )[ "tx_count" ];
+                var num_of_pages = Math.ceil( tx_count / 25 );
+                var i; for ( i=0; i<num_of_pages; i++ ) {
+                    var num = i*25;
+                    var url = `https://mempool.space/testnet/api/block/${block}/txs/${String( num )}`;
+                    var txs = await getData( url );
+                    txs = JSON.parse( txs );
+                    txs.every( function( tx ) {
+                        if ( tx[ "txid" ] == tx1 ) {
+                            tx_that_appeared_first = tx1;
+                            return;
+                        }
+                        if ( tx[ "txid" ] == tx2 ) {
+                            tx_that_appeared_first = tx2;
+                            return;
+                        }
+                        return true;
+                    });
+                }
+                return tx_that_appeared_first;
+            }
+
             function shuffleArray( array ) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor( Math.random() * ( i + 1 ) );
@@ -921,9 +997,8 @@
             }
             function findIndexOfNonIdentity( arr1, arr2 ) {
                 var i; for ( i=0; i<arr1.length; i++ ) {
-                    if ( arr1[ i ] != arr2[ i ] ) {
-                        return i;
-                    }
+                    if ( arr1[ i ] != arr2[ i ] ) return i;
+                    if ( arr1[ i ] == arr1.length - 1) return i + 1;
                 }
             }
             async function traceHistory( candidate_anchors, blockhash, chain = [] ) {
@@ -939,59 +1014,108 @@
             }
 
             async function resolveFork( block_1_hash, block_2_hash ) {
-                //note that this fork resolution method currently trusts miners to give good data
-                //to fix that, I should start with a list of anchor utxos up to the point of any theft
-                //or til it reaches the current blockheight (whichever comes first), and then,
-                //whenever any spaceblock comes in, check if its blockheight is prior to that theft,
-                //and if it is, ensure it uses a utxo from that chain, otherwise accept any utxo
-                //created after the last unstolen anchor utxo, then stop asking for more blocks until
-                //I've made the chain of acceptable utxos longer starting from that point
                 var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                 //trace each block's history to the beginning of its chain
                 var chain_1 = await traceHistory( candidate_anchors, block_1_hash );
                 var chain_2 = await traceHistory( candidate_anchors, block_2_hash );
-                //find where the two chains deviate
+                //for each anchor_tx in chain_1, check if it anchored the spacechain
+                //before any thefts occurred (using chain_til_theft_or_blockheight)
+                //then run the anchor after that through returnAnchorTxidsTilTheftOrCurrentBlockheight()
+                //and add the result to chain_til_theft_or_blockheight (or rather a copy of it)
+                //then continue checking if subsequent anchor_tx's anchored the spacechain
+                //before any thefts occurred, etc.
+                var unstolen_chain_1_anchors = chain_til_theft_or_blockheight;
+                var index_where_theft_happens_if_any = findIndexOfNonIdentity( chain_1, unstolen_chain_1_anchors );
+                if ( index_where_theft_happens_if_any != chain_1.length ) {
+                    var more_anchors = returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_1[ index_where_theft_happens_if_any - 1 ] );
+                    more_anchors.every( async function( anchor ) {
+                        //if any anchor from this point appears in bitcoin's blockchain before
+                        //the last unstolen anchor, ignore chain_1
+                        var tx_that_appeared_first = await findWhichTxAppearedFirst( anchor, unstolen_chain_1_anchors[ unstolen_chain_1_anchors.length - 1 ] );
+                        if ( tx_that_appeared_first == anchor ) {
+                            //if miners gave me bad data about chain_1 and chain_2, I will
+                            //mark both chain_1 as bad and assume chain_2 is good, because
+                            //if miners gave me bad data about chain_2 as well, I will
+                            //learn that later when I learn of the consensus fork from good
+                            //miners and then try to resolve the fork
+                            chain_1 = "bad_chain";
+                            return;
+                        }
+                        unstolen_chain_1_anchors.push( anchor );
+                        return true;
+                    });
+                }
+                if ( chain_1 == "bad_chain" ) {
+                    anchor_utxos_in_my_spacechain = chain_2;
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    return block_2_hash;
+                }
+                var unstolen_chain_2_anchors = chain_til_theft_or_blockheight;
+                var index_where_theft_happens_if_any = findIndexOfNonIdentity( chain_2, unstolen_chain_2_anchors );
+                if ( index_where_theft_happens_if_any != chain_2.length ) {
+                    var more_anchors = returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_2[ index_where_theft_happens_if_any - 1 ] );
+                    more_anchors.every( async function( anchor ) {
+                        //if any anchor from this point appears in bitcoin's blockchain before
+                        //the last unstolen anchor, ignore chain_1
+                        var tx_that_appeared_first = await findWhichTxAppearedFirst( anchor, unstolen_chain_2_anchors[ unstolen_chain_2_anchors.length - 1 ] );
+                        if ( tx_that_appeared_first == anchor ) {
+                            //there is a problem here because if miners gave me bad data about
+                            //chain_1 and chain_2 I will mark both chains as bad chains
+                            //but I can resolve that by assuming chain_2 is valid if chain_1
+                            //is invalid, because if miners gave me bad data about chain_2 as
+                            //well, I will learn that later when I learn of the consensus fork
+                            //from good miners and then try to resolve the fork
+                            chain_2 = "bad_chain";
+                            return;
+                        }
+                        unstolen_chain_2_anchors.push( anchor );
+                        return true;
+                    });
+                }
+                if ( chain_2 == "bad_chain" ) {
+                    anchor_utxos_in_my_spacechain = chain_1;
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    return block_1_hash;
+                }
+                //if neither chain is bad, find where the two chains deviate
                 var deviation_point = findIndexOfNonIdentity( chain_1, chain_2 );
                 //if the chains deviate ab initio, go with whichever one's first block matches yours
                 if ( deviation_point == 0 ) {
-                    if ( chain_1[ 0 ] == spacechain[ 0 ][ 0 ] ) {
-                        var chain_of_anchors = [];
-                        chain_1.forEach( function( hash ) {
-                            chain_of_anchors.push( findAnchorAmongCandidates( candidate_anchors, hash ) );
-                        });
-                        anchor_utxos_in_my_spacechain = chain_of_anchors;
-                        return;
+                    if ( chain_1[ 0 ] == anchor_utxos_in_my_spacechain[ 0 ] ) {
+                        anchor_utxos_in_my_spacechain = chain_1;
+                        localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                        return block_1_hash;
                     }
-                    if ( chain_2[ 0 ] == spacechain[ 0 ][ 0 ] ) {
-                        var chain_of_anchors = [];
-                        chain_2.forEach( function( hash ) {
-                            chain_of_anchors.push( findAnchorAmongCandidates( candidate_anchors, hash ) );
-                        });
-                        anchor_utxos_in_my_spacechain = chain_of_anchors;
-                        return;
+                    if ( chain_2[ 0 ] == anchor_utxos_in_my_spacechain[ 0 ] ) {
+                        anchor_utxos_in_my_spacechain = chain_2;
+                        localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                        return block_2_hash;
                     }
                 }
                 //if the deviation point came later, go with the longer chain if possible
                 if ( chain_1.length > chain_2.length ) {
-                    var chain_of_anchors = [];
-                    chain_1.forEach( function( hash ) {
-                        chain_of_anchors.push( findAnchorAmongCandidates( candidate_anchors, hash ) );
-                    });
-                    anchor_utxos_in_my_spacechain = chain_of_anchors;
-                    return;
+                    anchor_utxos_in_my_spacechain = chain_1;
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    return block_1_hash;
                 }
                 if ( chain_2.length > chain_1.length ) {
-                    var chain_of_anchors = [];
-                    chain_2.forEach( function( hash ) {
-                        chain_of_anchors.push( findAnchorAmongCandidates( candidate_anchors, hash ) );
-                    });
-                    anchor_utxos_in_my_spacechain = chain_of_anchors;
-                    return;
+                    anchor_utxos_in_my_spacechain = chain_2;
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    return block_2_hash;
                 }
                 //otherwise get the anchor txid of both at the point of depature
                 //and go with whichever chain appeared in bitcoin's blockchain first
                 anchor_txid_of_chain_1 = findAnchorAmongCandidates( candidate_anchors, chain_1[ deviation_point ] );
                 anchor_txid_of_chain_2 = findAnchorAmongCandidates( candidate_anchors, chain_2[ deviation_point ] );
+                correct_chain_txid = await findWhichTxAppearedFirst( anchor_txid_of_chain_1, anchor_txid_of_chain_2 );
+                if ( correct_chain_txid == anchor_txid_of_chain_1 ) {
+                    anchor_utxos_in_my_spacechain = chain_1;
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    return block_1_hash;
+                }
+                anchor_utxos_in_my_spacechain = chain_2;
+                localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                return block_2_hash;
             }
         </script>
         <script>
@@ -1025,6 +1149,8 @@
                 } else {
                     console.log( "not mining" );
                 }
+                //wait til sessionStorage[ "headers_synced" ] is true
+                await getNote( "headers_synced" );
                 syncChain();
             }
 
@@ -1170,11 +1296,6 @@
                         response[ "request_id" ] = message[ "request_id" ];
                         response[ "block" ] = getBlockFromSpacechain( message[ "blockhash" ] )[ 0 ];
                         response = JSON.stringify( response );
-                    } else {
-                        console.log( "blockhash" in message );
-                        console.log( isHex( message[ "blockhash" ] ) );
-                        console.log( message[ "blockhash" ].length == 64 );
-                        console.log( getBlockFromSpacechain( message[ "blockhash" ] ) );
                     }
                     if (
                         "blocknum" in message &&
@@ -1247,15 +1368,9 @@
                     console.log( "anchor tx:", claimed_anchor_tx );
                     //if the block is not anchored, ignore it
                     if ( !claimed_anchor_tx ) return;
-                    //todo: check if the block's anchor transaction used an anchor_utxo from your spacechain
-                    //return here after the array anchor_utxos_in_my_spacechain is reliable -- it is being
-                    //worked on in returnLatestAnchorTxidOrThatNewOneMustBeMade()
-                    //not sure how to do this
-                    //I think I will need to make an array of anchor_utxos for my spacechain on startup
-                    //i.e. before syncing the chain -- kind of like how bitcoin makes a list of bitcoin
-                    //headers before it syncs the chain
+                    //check if the block's anchor transaction used an anchor_utxo from your spacechain
                     //if the block's anchor transaction is not on my list, ignore it
-                    //not sure how to do this
+                    if ( !anchor_utxos_in_my_spacechain.includes( claimed_anchor_tx ) ) return;
                     //otherwise, if your chain has zero blocks, check that this block's parent is all zeroes
                     console.log( claimed_block[ 0 ].substring( 0, 64 ) );
                     console.log( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
@@ -1286,28 +1401,12 @@
                         claimed_block[ 0 ].substring( 0, 64 ) != getSpacechainHashes()[ getSpacechainHashes().length - 1 ]
                     ) {
                         //if your chain has blocks and this new block does not build on your latest block
-                        //then there is a fork, so find the point when the chains forked, then sync both chains
-                        //from that point til one stops syncing for thirty seconds, then discard the shorter one
+                        //then there is a fork, so resolve the fork and resync the chain
                         var latest_block = getBlockFromSpacechain( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
-                        //resolveFork( claimed_block, latest_block );
+                        await resolveFork( claimed_block, latest_block );
+                        //resync chain
+                        syncChain();
                     }
-
-                    /* I used to use this code to check if the block I requested is identical to my latest block
-                    //but later I decided that is a bad idea
-                    //here is what the code said, including comments:
-
-                    //check if the block's hash and your latest block's hash are the same
-                    //if the are the same, ask for the next block
-                    var claimed_block = message[ "block" ];
-                    var claimed_blockhash = bitcoinjs.crypto.sha256( claimed_block ).toString( "hex" );
-                    var my_latest_blockhash = "01";
-                    if ( getSpacechainHashes().length ) {
-                        my_latest_blockhash = getSpacechainHashes()[ getSpacechainHashes().length - 1 ];
-                    }
-                    if ( claimed_blockhash == my_latest_blockhash ) {
-                        requestBlock( getSpacechainHashes().length + 1 );
-                    }
-                    */
                 }
             }
 
