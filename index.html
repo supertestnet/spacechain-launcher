@@ -137,7 +137,6 @@
                 $( '.launchpad' ).style.display = "flex";
             }
             var chain_til_theft_or_blockheight = [];
-            sessionStorage[ "headers_synced_til_theft_or_current_blockheight" ] = "";
             sessionStorage[ "headers_synced" ] = "";
             async function syncHeaders() {
                 await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
@@ -154,7 +153,6 @@
                 anchor_utxos_in_my_spacechain = [];
                 anchor_utxos_in_my_spacechain.push( $_GET[ "chain" ] );
                 localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
-                syncRemainingHeaders();
             }
             async function getData( url ) {
                 var rtext = "";
@@ -596,19 +594,37 @@
                         }
                     });
                 }
+                async function getTimeoutData() {
+                    var note_i_seek = await isNoteSetYet( sessionStorage[ "block_after_theft" ] );
+                    return note_i_seek;
+                }
+                var returnable = await getTimeoutData();
+                return returnable;
             }
             async function requestBlock2( num_of_seconds_to_wait, hash_of_block ) {
-                requestBlock( hash_of_block, false, true );
+                var block_i_seek = "";
+                spacechain.every( function( block ) {
+                    if ( bitcoinjs.crypto.sha256( block[ 1 ] ).toString( "hex" ) == hash_of_block ) {
+                        console.log( "found it locally!" )
+                        block_i_seek =  block[ 1 ];
+                        return;
+                    }
+                    return true;
+                });
+                if ( !block_i_seek ) requestBlock( hash_of_block, false, true );
                 var started_waiting_time = Math.floor( Date.now() / 1000 );
                 async function isNoteSetYet( note_i_seek ) {
                     return new Promise( function( resolve, reject ) {
                         if ( note_i_seek == "" ) {
+                            block_i_seek = sessionStorage[ "block_being_sought" ];
                             var current_time = Math.floor( Date.now() / 1000 );
-                            if ( started_waiting_time + num_of_seconds_to_wait < current_time ) {
+                            console.log( block_i_seek );
+                            if ( started_waiting_time + num_of_seconds_to_wait < current_time && !block_i_seek ) {
                                 resolve( "time_is_up" );
                             }
                             setTimeout( async function() {
-                                var msg = await isNoteSetYet( sessionStorage[ "block_being_sought" ] );
+                                var msg = await isNoteSetYet( block_i_seek );
+                                console.log( "a miner gave it to me!" );
                                 resolve( msg );
                             }, 100 );
                         } else {
@@ -617,10 +633,11 @@
                     });
                 }
                 async function getTimeoutData() {
-                    var note_i_seek = await isNoteSetYet( sessionStorage[ "block_being_sought" ] );
+                    var note_i_seek = await isNoteSetYet( block_i_seek );
                     return note_i_seek;
                 }
                 var returnable = await getTimeoutData();
+                console.log( "returnable (should be whole block, not just a hash):", returnable );
                 return returnable;
             }
 
@@ -705,14 +722,16 @@
                 //get the spaceblock's hash
                 var hash = bitcoinjs.crypto.sha256( JSON.stringify( spaceblock ) ).toString( "hex" );
                 sessionStorage[ "spaceblock_hash" ] = hash;
-                var spacechain = [];
-                spacechain.push([ hash, JSON.stringify( spaceblock ) ]);
-                localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                sessionStorage[ "next_spaceblock" ] = JSON.stringify( spaceblock );
             }
 
             async function getFeePaidByTx( tx ) {
                 var data = await getData( `https://mempool.space/testnet/api/tx/${tx}` );
-                var fee = JSON.parse( data )[ "fee" ];
+                if ( isValidJson( data ) ) {
+                    var fee = JSON.parse( data )[ "fee" ];
+                } else {
+                    fee = "error";
+                }
                 return fee;
             }
 
@@ -803,6 +822,7 @@
                 var recovery_anchor = "";
                 var num_of_known_spaceblocks = anchor_utxos_in_my_spacechain.length;
                 if ( anchor_was_stolen ) {
+                    console.log( "wait fifteen seconds..." );
                     //check if the chain was recovered after the theft
                     sessionStorage[ "block_after_theft" ] = "";
                     var block_after_theft = await getBlockAfterTheft( 15, num_of_known_spaceblocks + 1 );
@@ -822,7 +842,7 @@
                         recovery_anchor = findAnchorAmongCandidates( candidate_anchors, block_hash );
                     }
                 }
-                if ( anchor_was_stolen && !recovery_anchor ) return "make new one";
+                if ( anchor_was_stolen && !recovery_anchor ) {console.log( "headers synced!" );return "make new one";}
                 if ( recovery_anchor ) {
                     latest_known_anchor_txid = recovery_anchor;
                 }
@@ -957,6 +977,8 @@
             }
 
             async function findWhichTxAppearedFirst( tx1, tx2 ) {
+                console.log( "here are the two transaction ids:", tx1, tx2 );
+                if ( tx1 == tx2 ) return tx1;
                 var tx_that_appeared_first = "";
                 var block_of_tx1 = await getData( `https://mempool.space/testnet/api/tx/${tx1}` );
                 block_of_tx1 = JSON.parse( block_of_tx1 )[ "status" ][ "block_height" ];
@@ -1003,38 +1025,48 @@
             }
             async function traceHistory( candidate_anchors, blockhash, chain = [] ) {
                 var anchor_txid = findAnchorAmongCandidates( candidate_anchors, blockhash );
+                //console.log( "blockhash:", blockhash );
+                //console.log( "anchor_txid:", anchor_txid );
                 if ( !anchor_txid ) return "bad chain";
                 chain.splice( 0, 0, anchor_txid );
                 sessionStorage[ "block_being_sought" ] = "";
-                var block = await requestBlock2( 5, blockhash );
-                if ( block == "time_is_up" ) return "bad chain";
-                var parent_of_block = JSON.parse( block )[ 0 ].substring( 0, 64 );
+                var getting_my_block = await requestBlock2( 5, blockhash );
+                //console.log( "run this:", `var block = await requestBlock2( 5, "${blockhash}" );` );
+                if ( getting_my_block == "time_is_up" ) {console.log( "here is the block:", block );return "bad chain";}
+                var parent_of_block = JSON.parse( getting_my_block )[ 0 ].substring( 0, 64 );
                 if ( parent_of_block == "0000000000000000000000000000000000000000000000000000000000000000" ) return chain;
                 return traceHistory( candidate_anchors, parent_of_block, chain );
             }
 
             async function resolveFork( block_1_hash, block_2_hash ) {
+                if ( block_1_hash == block_2_hash ) return block_1_hash;
                 var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                 //trace each block's history to the beginning of its chain
                 var chain_1 = await traceHistory( candidate_anchors, block_1_hash );
+                console.log( "chain_1:", chain_1 );
                 var chain_2 = await traceHistory( candidate_anchors, block_2_hash );
+                console.log( "chain_2:", chain_2 );
                 //for each anchor_tx in chain_1, check if it anchored the spacechain
                 //before any thefts occurred (using chain_til_theft_or_blockheight)
                 //then run the anchor after that through returnAnchorTxidsTilTheftOrCurrentBlockheight()
                 //and add the result to chain_til_theft_or_blockheight (or rather a copy of it)
                 //then continue checking if subsequent anchor_tx's anchored the spacechain
                 //before any thefts occurred, etc.
+                //if an anchorpoint comes immediately *after* a theft then consider it
+                //a valid anchorpoint
                 var unstolen_chain_1_anchors = chain_til_theft_or_blockheight;
                 var index_where_theft_happens_if_any = findIndexOfNonIdentity( chain_1, unstolen_chain_1_anchors );
                 if ( index_where_theft_happens_if_any != chain_1.length ) {
-                    var more_anchors = returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_1[ index_where_theft_happens_if_any - 1 ] );
+                    console.log( "slice:", chain_1.slice( index_where_theft_happens_if_any ) );
+                    var more_anchors = await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_1.slice( index_where_theft_happens_if_any ) );
+                    console.log( "more anchors:", more_anchors );
                     more_anchors.every( async function( anchor ) {
                         //if any anchor from this point appears in bitcoin's blockchain before
                         //the last unstolen anchor, ignore chain_1
                         var tx_that_appeared_first = await findWhichTxAppearedFirst( anchor, unstolen_chain_1_anchors[ unstolen_chain_1_anchors.length - 1 ] );
                         if ( tx_that_appeared_first == anchor ) {
                             //if miners gave me bad data about chain_1 and chain_2, I will
-                            //mark both chain_1 as bad and assume chain_2 is good, because
+                            //mark chain_1 as bad and assume chain_2 is good, because
                             //if miners gave me bad data about chain_2 as well, I will
                             //learn that later when I learn of the consensus fork from good
                             //miners and then try to resolve the fork
@@ -1046,25 +1078,45 @@
                     });
                 }
                 if ( chain_1 == "bad_chain" ) {
+                    console.log( "oh no! chain_1 is a bad chain, changing to chain_2" );
+                    if ( chain_2 == "bad chain" ) {
+                        alert( "something went terribly wrong while resolving a fork. Refreshing the webpage and resyncing the chain. If this keeps happening, ask a developer for help." );
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        window.location.reload();
+                        await waitSomeSeconds( 600 );
+                        return;
+                    }
                     anchor_utxos_in_my_spacechain = chain_2;
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( "here was your old spacechain:" );
+                    console.log( JSON.stringify( spacechain ) );
+                    spacechain.every( function( block, index ) {
+                        if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                            spacechain.length = index;
+                            return;
+                        }
+                        return true;
+                    });
+                    console.log( "here is your new spacechain:" );
+                    console.log( spacechain );
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    syncChain();
                     return block_2_hash;
                 }
                 var unstolen_chain_2_anchors = chain_til_theft_or_blockheight;
                 var index_where_theft_happens_if_any = findIndexOfNonIdentity( chain_2, unstolen_chain_2_anchors );
                 if ( index_where_theft_happens_if_any != chain_2.length ) {
-                    var more_anchors = returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_2[ index_where_theft_happens_if_any - 1 ] );
+                    sessionStorage[ "chain_1" ] = JSON.stringify( chain_1 );
+                    console.log( "slice of chain 2:", chain_2.slice( index_where_theft_happens_if_any ) );
+                    var more_anchors = await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_2.slice( index_where_theft_happens_if_any ) );
+                    chain_1 = JSON.parse( sessionStorage[ "chain_1" ] );
+                    console.log( "more anchors for chain 2:", more_anchors );
                     more_anchors.every( async function( anchor ) {
                         //if any anchor from this point appears in bitcoin's blockchain before
-                        //the last unstolen anchor, ignore chain_1
+                        //the last unstolen anchor, ignore chain_2
                         var tx_that_appeared_first = await findWhichTxAppearedFirst( anchor, unstolen_chain_2_anchors[ unstolen_chain_2_anchors.length - 1 ] );
                         if ( tx_that_appeared_first == anchor ) {
-                            //there is a problem here because if miners gave me bad data about
-                            //chain_1 and chain_2 I will mark both chains as bad chains
-                            //but I can resolve that by assuming chain_2 is valid if chain_1
-                            //is invalid, because if miners gave me bad data about chain_2 as
-                            //well, I will learn that later when I learn of the consensus fork
-                            //from good miners and then try to resolve the fork
                             chain_2 = "bad_chain";
                             return;
                         }
@@ -1073,48 +1125,166 @@
                     });
                 }
                 if ( chain_2 == "bad_chain" ) {
+                    console.log( "oh no! chain_2 is a bad chain, changing to chain_1" );
+                    if ( chain_1 == "bad chain" ) {
+                        alert( "something went terribly wrong while resolving a fork. Refreshing the webpage and resyncing the chain. If this keeps happening, ask a developer for help." );
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        window.location.reload();
+                        await waitSomeSeconds( 600 );
+                        return;
+                    }
                     anchor_utxos_in_my_spacechain = chain_1;
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( "here was your old spacechain:" );
+                    console.log( JSON.stringify( spacechain ) );
+                    spacechain.every( function( block, index ) {
+                        if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                            spacechain.length = index;
+                            return;
+                        }
+                        return true;
+                    });
+                    console.log( "here is your new spacechain:" );
+                    console.log( spacechain );
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    syncChain();
                     return block_1_hash;
+                } else {
+                    console.log( "here is chain_2 at this stage:" );
+                    console.log( chain_2 );
                 }
                 //if neither chain is bad, find where the two chains deviate
                 var deviation_point = findIndexOfNonIdentity( chain_1, chain_2 );
+                //if the chains are the same, return chain 1
+                if ( deviation_point != 0 && !deviation_point ) return block_1_hash;
+                console.log( "both chains are good and here is where they deviate:", deviation_point );
+                console.log( "here are the chains so you can see:" );
+                console.log( "chain_1:" );
+                console.log( chain_1 );
+                console.log( "chain_2:" );
+                console.log( chain_2 );
                 //if the chains deviate ab initio, go with whichever one's first block matches yours
                 if ( deviation_point == 0 ) {
                     if ( chain_1[ 0 ] == anchor_utxos_in_my_spacechain[ 0 ] ) {
                         anchor_utxos_in_my_spacechain = chain_1;
                         localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                        console.log( "here was your old spacechain:" );
+                        console.log( JSON.stringify( spacechain ) );
+                        spacechain.every( function( block, index ) {
+                            if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                                spacechain.length = index;
+                                return;
+                            }
+                            return true;
+                        });
+                        console.log( "here is your new spacechain:" );
+                        console.log( spacechain );
+                        localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                        syncChain();
                         return block_1_hash;
                     }
                     if ( chain_2[ 0 ] == anchor_utxos_in_my_spacechain[ 0 ] ) {
                         anchor_utxos_in_my_spacechain = chain_2;
                         localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                        console.log( "here was your old spacechain:" );
+                        console.log( JSON.stringify( spacechain ) );
+                        spacechain.every( function( block, index ) {
+                            if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                                spacechain.length = index;
+                                return;
+                            }
+                            return true;
+                        });
+                        console.log( "here is your new spacechain:" );
+                        console.log( spacechain );
+                        localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                        syncChain();
                         return block_2_hash;
                     }
                 }
                 //if the deviation point came later, go with the longer chain if possible
+                console.log( "the deviation point is not 0 so I am going with the longer chain if possible" );
+                console.log( "here are their lengths. Chain 1:", chain_1.length, "Chain 2:", chain_2.length );
                 if ( chain_1.length > chain_2.length ) {
                     anchor_utxos_in_my_spacechain = chain_1;
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( "here was your old spacechain:" );
+                    console.log( JSON.stringify( spacechain ) );
+                    spacechain.every( function( block, index ) {
+                        if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                            spacechain.length = index;
+                            return;
+                        }
+                        return true;
+                    });
+                    console.log( "here is your new spacechain:" );
+                    console.log( spacechain );
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    syncChain();
                     return block_1_hash;
                 }
                 if ( chain_2.length > chain_1.length ) {
                     anchor_utxos_in_my_spacechain = chain_2;
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( "here was your old spacechain:" );
+                    console.log( JSON.stringify( spacechain ) );
+                    spacechain.every( function( block, index ) {
+                        if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                            spacechain.length = index;
+                            return;
+                        }
+                        return true;
+                    });
+                    console.log( "here is your new spacechain:" );
+                    console.log( spacechain );
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    syncChain();
                     return block_2_hash;
                 }
                 //otherwise get the anchor txid of both at the point of depature
                 //and go with whichever chain appeared in bitcoin's blockchain first
-                anchor_txid_of_chain_1 = findAnchorAmongCandidates( candidate_anchors, chain_1[ deviation_point ] );
-                anchor_txid_of_chain_2 = findAnchorAmongCandidates( candidate_anchors, chain_2[ deviation_point ] );
+                console.log( "they are the same length so I am going with the one whose anchor_tx appeared first in bitcoin's blockchain" );
+                anchor_txid_of_chain_1 = chain_1[ deviation_point ];
+                console.log( "here is the anchor_tx I seek for chain_1:", anchor_txid_of_chain_1 );
+                anchor_txid_of_chain_2 = chain_2[ deviation_point ];
+                console.log( "here is the anchor_tx I seek for chain_2:", anchor_txid_of_chain_2 );
                 correct_chain_txid = await findWhichTxAppearedFirst( anchor_txid_of_chain_1, anchor_txid_of_chain_2 );
                 if ( correct_chain_txid == anchor_txid_of_chain_1 ) {
+                    console.log( "going with chain 1!" );
                     anchor_utxos_in_my_spacechain = chain_1;
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( "here was your old spacechain:" );
+                    console.log( JSON.stringify( spacechain ) );
+                    spacechain.every( function( block, index ) {
+                        if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                            spacechain.length = index;
+                            return;
+                        }
+                        return true;
+                    });
+                    console.log( "here is your new spacechain:" );
+                    console.log( spacechain );
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    syncChain();
                     return block_1_hash;
                 }
+                console.log( "going with chain 2!" );
                 anchor_utxos_in_my_spacechain = chain_2;
                 localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                console.log( "here was your old spacechain:" );
+                console.log( JSON.stringify( spacechain ) );
+                spacechain.every( function( block, index ) {
+                    if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
+                        spacechain.length = index;
+                        return;
+                    }
+                    return true;
+                });
+                console.log( "here is your new spacechain:" );
+                console.log( spacechain );
+                localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                syncChain();
                 return block_2_hash;
             }
         </script>
@@ -1150,7 +1320,10 @@
                     console.log( "not mining" );
                 }
                 //wait til sessionStorage[ "headers_synced" ] is true
+                console.log( "waiting til headers are synced..." );
                 await getNote( "headers_synced" );
+                if ( $_GET[ "testing_no_sync" ] ) return;
+                console.log( "syncing chain!" );
                 syncChain();
             }
 
@@ -1161,7 +1334,7 @@
                 if ( kind != 20004 && kind != 11140 ) return;
                 var sender = event.pubkey;
                 if ( kind === 20004 ) {
-                    content = await decrypt(privKey, sender, content)
+                    content = await decrypt( privKey, sender, content );
                 }
                 message = content;
                 var page = "";
@@ -1180,18 +1353,35 @@
                         if ( miner[ 1 ] + 600 < Math.floor( Date.now() / 1000 ) ) myminers.splice( index, 1 );
                     });
                     //ignore miners on chains you aren't looking for
+                    console.log( 0, allminers, myminers );
                     if ( $_GET[ "chain" ] && message != $_GET[ "chain" ] ) return;
+                    console.log( 1, allminers, myminers );
                     //ignore yourself
                     if ( sender == pubKey ) return;
+                    console.log( 2, allminers, myminers );
                     //ignore miners already on the list
-                    if ( allminers.includes( sender ) ) return;
-                    allminers.push( [sender, Math.floor( Date.now() / 1000 )] );
+                    var miner_is_in_the_list = false;
+                    allminers.every( function( miner ) {
+                        if ( miner[ 0 ] == sender ) {
+                            miner_is_in_the_list = true;
+                            return;
+                        }
+                        return true;
+                    });
+                    if ( !miner_is_in_the_list ) {
+                        console.log( 3, allminers, myminers );
+                        allminers.push( [sender, Math.floor( Date.now() / 1000 )] );
+                    }
                     //shuffle the array of miners
                     shuffleArray( allminers );
+                    console.log( 4, allminers, myminers );
                     //fill the myminer array
                     allminers.forEach( function( miner ) {
+                        console.log( 5, allminers, myminers );
                         if ( myminers.length >= 8 || myminers.includes( miner ) ) return;
+                        console.log( 6, allminers, myminers );
                         myminers.push( miner );
+                        console.log( 7, allminers, myminers );
                     });
                     return;
                 }
@@ -1211,9 +1401,10 @@
                     if ( !myminers.includes( sender ) ) return;
                     return;
                 }
-                console.log( "message:", message );
+                console.log( "message:", message, "sent by:", sender );
                 if ( !isValidJson( message ) ) return;
                 message = JSON.parse( message );
+                /*
                 if (
                     "msg_type" in message &&
                     "swap_address" in message &&
@@ -1275,9 +1466,10 @@
                         console.log( "success! Your spaceblock is anchored in this transaction:", txid );
                         var hash = sessionStorage[ "spaceblock_hash" ];
                         var block = JSON.parse( sessionStorage[ "next_spaceblock" ] );
-                        spacechain.push([ hash, JSON.stringify( block ) ]);
+                        spacechain.push([ hash, JSON.stringify( block ), txid ]);
                     }
                 }
+                */
                 if (
                     "msg_type" in message &&
                     message[ "msg_type" ] == "send_block" &&
@@ -1311,7 +1503,10 @@
                         response = JSON.stringify( response );
                     }
                     if ( !response ) {
-                        var response = "malformed request, please try again"
+                        var response = {}
+                        response[ "request_id" ] = message[ "request_id" ];
+                        response[ "error" ] = "malformed request, please try again";
+                        response = JSON.stringify( response );
                     }
                     var recipient = sender;
                     var encrypted = encrypt( privKey, recipient, response );
@@ -1336,12 +1531,12 @@
                 ) {
                     //remove the pending block request
                     pending_block_requests.splice( pending_block_requests.indexOf( message[ "request_id" ] ), 1 );
+                    console.log( "the message was removed" );
                     //you got a block, which either means there is a fork, a new block, or a troll
                     //check if it's a valid spaceblock candidate to see if it's a troll
                     var claimed_block = message[ "block" ];
                     var is_candidate_block = await isCandidateBlock( claimed_block );
                     if ( !is_candidate_block ) return;
-                    console.log( "not troll" );
                     if ( message[ "request_id" ].startsWith( "00000000" ) ) {
                         //do not immediately set the block, instead set
                         //an intermediate variable. If 5 seconds pass without
@@ -1358,6 +1553,7 @@
                     }
                     if ( message[ "request_id" ].startsWith( "00000001" ) ) {
                         sessionStorage[ "block_being_sought" ] = claimed_block;
+                        console.log( sessionStorage[ "block_being_sought" ] );
                         return;
                     }
                     var block_hash = bitcoinjs.crypto.sha256( claimed_block ).toString( "hex" );
@@ -1365,22 +1561,22 @@
                     //check if the block was anchored into bitcoin
                     var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                     var claimed_anchor_tx = findAnchorAmongCandidates( candidate_anchors, block_hash );
-                    console.log( "anchor tx:", claimed_anchor_tx );
+                    console.log( 0, `claimed_anchor_tx_for ${block_hash}:`, claimed_anchor_tx );
                     //if the block is not anchored, ignore it
                     if ( !claimed_anchor_tx ) return;
+                    console.log( 1 );
                     //check if the block's anchor transaction used an anchor_utxo from your spacechain
                     //if the block's anchor transaction is not on my list, ignore it
                     if ( !anchor_utxos_in_my_spacechain.includes( claimed_anchor_tx ) ) return;
+                    console.log( 2 );
                     //otherwise, if your chain has zero blocks, check that this block's parent is all zeroes
-                    console.log( claimed_block[ 0 ].substring( 0, 64 ) );
-                    console.log( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
                     if (
                         !getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) == "0000000000000000000000000000000000000000000000000000000000000000"
                     ) {
-                        console.log( "woweewow" );
+                        console.log( 3 );
                         //it is a new block so add it to your own chain
-                        spacechain.push([ block_hash, JSON.stringify( claimed_block ) ]);
+                        spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
@@ -1389,10 +1585,9 @@
                         getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) == getSpacechainHashes()[ getSpacechainHashes().length - 1 ]
                     ) {
-                        console.log( "woweewow2" );
                         //it is a new block so add it to your own chain
-                        console.log( "not all zeroes" );
-                        spacechain.push([ block_hash, JSON.stringify( claimed_block ) ]);
+                        console.log( 4, claimed_block[ 0 ].substring( 0, 64 ), getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
+                        spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
@@ -1400,13 +1595,21 @@
                         getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) != getSpacechainHashes()[ getSpacechainHashes().length - 1 ]
                     ) {
+                        console.log( 5, claimed_block[ 0 ].substring( 0, 64 ), getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
                         //if your chain has blocks and this new block does not build on your latest block
                         //then there is a fork, so resolve the fork and resync the chain
-                        var latest_block = getBlockFromSpacechain( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
-                        await resolveFork( claimed_block, latest_block );
+                        var latest_block = getBlockFromSpacechain( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] )[ 0 ];
+                        await resolveFork( block_hash, bitcoinjs.crypto.sha256( latest_block ).toString( "hex" ) );
                         //resync chain
                         syncChain();
                     }
+                }
+                if (
+                    "request_id" in message &&
+                    pending_block_requests.includes( message[ "request_id" ] )
+                ) {
+                    //remove the pending block request
+                    pending_block_requests.splice( pending_block_requests.indexOf( message[ "request_id" ] ), 1 );
                 }
             }
 
@@ -1481,6 +1684,11 @@
                         return;
                     }
                     console.log( "success! Your spaceblock is anchored in this transaction:", txid );
+                    var hash = sessionStorage[ "spaceblock_hash" ];
+                    var block = JSON.parse( sessionStorage[ "next_spaceblock" ] );
+                    var spacechain = [];
+                    spacechain.push([ hash, JSON.stringify( block ), txid ]);
+                    localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                     step3();
                 }
                 if ( page == "mining_center" ) {
@@ -1498,7 +1706,7 @@
                     console.log( "success! Your spaceblock is anchored in this transaction:", txid );
                     var hash = sessionStorage[ "spaceblock_hash" ];
                     var block = JSON.parse( sessionStorage[ "next_spaceblock" ] );
-                    spacechain.push([ hash, JSON.stringify( block ) ]);
+                    spacechain.push([ hash, JSON.stringify( block ), txid ]);
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                 }
             }
@@ -1565,7 +1773,8 @@
             function requestBlock( num_or_hash, investigating_theft, tracing_history ) {
                 //ask each miner for your latest block and the block after it
                 //a function in handleMessage
-                myminers.forEach( async function( miner ) {
+                var offset = 0;
+                myminers.forEach( async function( miner, index ) {
                     var message = {}
                     message[ "msg_type" ] = "send_block";
                     var request_id = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" );
@@ -1600,6 +1809,8 @@
                     //if an answer does come, a function in handleMessage will remove it
                     setTimeout( function() {
                         if ( !pending_block_requests.includes( request_id ) ) return;
+                        myminers.splice( index - offset, 1 );
+                        offset = offset + 1;
                         pending_block_requests.splice( pending_block_requests.indexOf( request_id ), 1 );
                     }, 10000 );
                     socket.send( JSON.stringify( [ "EVENT", signedEvent ] ) );
@@ -1616,11 +1827,19 @@
                 // var spaceblock = [];
                 // spaceblock.push( "0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b" );
                 // spaceblock.push( '{"spacechain_name":"Test chain","spacechain_msg":"test message"}' );
-                // spacechain.push([ "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24", JSON.stringify( spaceblock ) ]);
+                // spacechain.push([ "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24", JSON.stringify( spaceblock ), "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6" ]);
                 // var spaceblock2 = [];
-                // spaceblock2.push([ "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24000834880f155d3719b4485d5c2afc97d3b60fcc58aa61ae1c048c02dabfcad0" ]);
+                // spaceblock2.push( "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24000834880f155d3719b4485d5c2afc97d3b60fcc58aa61ae1c048c02dabfcad0" );
                 // spaceblock2.push( "second block woot" );
-                // spacechain.push([ "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f9", JSON.stringify( spaceblock2 ) ]);
+                // spacechain.push([ "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f9", JSON.stringify( spaceblock2 ), "2aa978e504560ef4f605b01eb7537a4f5da7ac5b08d11179b236118d62d061cc" ]);
+                // var spaceblock3_1 = [];
+                // spaceblock3_1.push( "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f950920d1ea99cc88ed832f1c15882dbd5ab5770f368842775038093ffa5c6f757" );
+                // spaceblock3_1.push( "This is the third spaceblock and I have become exceedingly efficient at it." );
+                // spacechain.push([ "898068d17894c438e99953695b0270068115aae532ebeda8d8310554ac45e4b0", JSON.stringify( spaceblock3_1 ), "8a745f510aa2ecf83a20de0b3398ad8227d73c07370247963cf4e526e5b045ac" ]);
+                // var spaceblock3_2 = [];
+                // spaceblock3_2.push( "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f9225f40e951f9e39aad545695b38387660b91b3b68ac6fc5dd16c808d04e799ad" );
+                // spaceblock3_2.push( "This is a fork block, I am experimenting with forks" );
+                // spacechain.push([ "6bb933c3ef46cda86568322b21bd85db413e7692214ee0f5fc984e1e31c93944", JSON.stringify( spaceblock3_2 ), "e8418bd995112bae9c2b2dc36be86d6d9fc3082b549e0881afc8fabe2024499a" ]);
             }
             function checkHeartbeat() {
                 if ( socket && socket.readyState == 3 ) {
@@ -1728,6 +1947,7 @@
             </div>
         </div>
         <div class="spaceblock_explorer">
+            <p><button class="view_network">Back</button></p>
             <h1>Welcome to the spaceblock explorer</h1>
             <p class="spaceblocks_loading">Loading...<span class="spaceblocks_loading_percent">0</span>%</p>
             <div class="spaceblocks">
@@ -1735,6 +1955,7 @@
         </div>
         <div class="mining_center">
             <h1>Welcome to the mining center</h1>
+            <p><button class="view_network">Back</button></p>
             <p class="space_blocksheight">Blockheight: <span class="space_blockheight_count">0</span></p>
             <p>
                 Create next block
@@ -1866,6 +2087,9 @@
                 //ask for payment, then do this part
                 await prepareAnchor();
             }
+            $$( '.view_network' ).forEach( function( item ) {
+                item.onclick = function() {view_network_home();}
+            });
         </script>
     </body>
 </html>
