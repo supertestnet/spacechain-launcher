@@ -91,7 +91,6 @@
                     height: 40px;
                 }
                 .launchpad {
-                    display: flex;
                     justify-content: space-between;
                 }
                 .launchpad button {
@@ -124,6 +123,10 @@
             var allminers = [];
             var myminers = [];
             var pending_block_requests = [];
+            sessionStorage.clear();
+            if ( $_GET[ "mining" ] == "true" ) {
+                sessionStorage[ "mining" ] = true;
+            }
             function view_network_home() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_step_1' ).style.display = "none";
@@ -135,9 +138,9 @@
                 $( '.behold_the_network' ).style.display = "block";
                 $( '.launch_page' ).style.display = "block";
                 $( '.launchpad' ).style.display = "flex";
+                $( '.launch_step_3' ).style.display = "block";
             }
             var chain_til_theft_or_blockheight = [];
-            sessionStorage[ "headers_synced" ] = "";
             async function syncHeaders() {
                 await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
                 await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
@@ -688,6 +691,7 @@
                 return Number( amount );
             }
             async function makeGenesisBlock() {
+                console.log( 0, "gen" );
                 //create a spaceblock template i.e. an empty array
                 var spaceblock = [];
                 //pass in an array of user data
@@ -696,6 +700,7 @@
                 var spacechain_msg = $( '.genesis_block_finalized .genesis_block textarea' ).value;
                 var json = JSON.stringify( {"spacechain_name": spacechain_name, "spacechain_msg": spacechain_msg} );
                 userdata.push( json );
+                console.log( 1, "gen" );
                 userdata.forEach( function( data ) {
                     //only let users add strings to the chain
                     if ( typeof( data ) == "string" ) {
@@ -707,6 +712,7 @@
                         }
                     }
                 });
+                console.log( 2, "gen" );
                 //merkle-ize the spaceblock
                 var unresolvedPromises = spaceblock.map( bitcoinjs.crypto.sha256 );
                 var leaves = await Promise.all( unresolvedPromises );
@@ -715,6 +721,7 @@
                 var merkleroot = tree.getRoot().toString( "hex" );
                 //get the 32 byte hash of the spaceblock being built upon
                 var parent = "0000000000000000000000000000000000000000000000000000000000000000";
+                console.log( 3, "gen" );
                 //make the block header
                 var header = parent + merkleroot;
                 //insert the header into the spaceblock as its first item
@@ -723,6 +730,7 @@
                 var hash = bitcoinjs.crypto.sha256( JSON.stringify( spaceblock ) ).toString( "hex" );
                 sessionStorage[ "spaceblock_hash" ] = hash;
                 sessionStorage[ "next_spaceblock" ] = JSON.stringify( spaceblock );
+                console.log( 4, "gen" );
             }
 
             async function getFeePaidByTx( tx ) {
@@ -1313,12 +1321,13 @@
                 var filter2 = {"kinds": [ 11140 ], "since": Math.floor( Date.now() / 1000 ) - ( 60 * 10 )}
                 var subscription2 = [ "REQ", subId2, filter2 ];
                 socket.send( JSON.stringify( subscription2 ) );
-                if ( $_GET[ "mining" ] == "true" ) {
+                if ( sessionStorage[ "mining" ] ) {
                     mineOnLoop();
                     console.log( "mining as:", pubKey );
                 } else {
                     console.log( "not mining" );
                 }
+                if ( !$_GET[ "chain" ] ) return;
                 //wait til sessionStorage[ "headers_synced" ] is true
                 console.log( "waiting til headers are synced..." );
                 await getNote( "headers_synced" );
@@ -1616,6 +1625,28 @@
             socket.addEventListener( 'message', handleMessage );
             socket.addEventListener( 'open', openConnection );
 
+            function startMining() {
+                sessionStorage[ "mining" ] = true;
+                mineOnLoop();
+                console.log( "mining as:", pubKey );
+                var button = document.createElement( "button" );
+                button.innerText = "Deregister as a miner of this spacechain";
+                button.onclick = function() {stopMining();}
+                $( '.miner_registration' ).innerHTML = "";
+                $( '.miner_registration' ).append( button );
+            }
+
+            function stopMining() {
+                sessionStorage.removeItem( "mining" );
+                announceIStoppedMining();
+                console.log( "not mining" );                
+                var button = document.createElement( "button" );
+                button.innerText = "Register as a miner of this spacechain";
+                button.onclick = function() {startMining();}
+                $( '.miner_registration' ).innerHTML = "";
+                $( '.miner_registration' ).append( button );
+            }
+
             async function getSignedEvent(event, privateKey) {
                 var eventData = JSON.stringify([
                     0,                    // Reserved for future use
@@ -1655,10 +1686,10 @@
             }
             async function prepareAnchor() {
                 var page = "";
-                if ( $( '.launch_page' ).style.display != "none" ) {
+                if ( $( '.launch_page' ).style.display && $( '.launch_page' ).style.display != "none" ) {
                     page = "launch_page";
                 }
-                if ( $( '.mining_center' ).style.display != "none" ) {
+                if ( $( '.mining_center' ).style.display && $( '.mining_center' ).style.display != "none" ) {
                     page = "mining_center";
                 }
                 var keypair = bitcoinjs.ECPair.makeRandom();
@@ -1671,7 +1702,9 @@
                 var preimage = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" );
                 var payment_hash = bitcoinjs.crypto.sha256( hexToBytes( preimage ) ).toString( "hex" );
                 var swap_address = getSwapAddress( pubkey, pubkey, payment_hash, timelock );
+                console.log( 0, page );
                 if ( page == "launch_page" ) {
+                    console.log( 1 );
                     $( '.launch_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
                     $( '.launch_payment_link' ).href = "bitcoin:" + swap_address;
                     $( '.launch_payment_caption' ).value = "bitcoin:" + swap_address;
@@ -1683,13 +1716,22 @@
                         alert( "Oh no, something went wrong! Please try again." );
                         return;
                     }
-                    console.log( "success! Your spaceblock is anchored in this transaction:", txid );
+                    alert( "success! Your spaceblock is anchored in this transaction: " + txid );
                     var hash = sessionStorage[ "spaceblock_hash" ];
                     var block = JSON.parse( sessionStorage[ "next_spaceblock" ] );
-                    var spacechain = [];
+                    spacechain = [];
+                    anchor_utxos_in_my_spacechain = [];
+                    anchor_utxos_in_my_spacechain.push( txid );
+                    localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
+                    console.log( 0, "gen" );
                     spacechain.push([ hash, JSON.stringify( block ), txid ]);
+                    console.log( 1, "gen" );
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
-                    step3();
+                    console.log( 2, "gen" );
+                    sessionStorage[ "spaceblock_hash" ] = "";
+                    sessionStorage[ "next_spaceblock" ] = "";
+                    console.log( "my spacechain:", spacechain );
+                    window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + txid;
                 }
                 if ( page == "mining_center" ) {
                     $( '.new_block_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
@@ -1703,11 +1745,13 @@
                         alert( "Oh no, something went wrong! Please try again." );
                         return;
                     }
-                    console.log( "success! Your spaceblock is anchored in this transaction:", txid );
+                    alert( "success! Your spaceblock is anchored in this transaction: " + txid );
                     var hash = sessionStorage[ "spaceblock_hash" ];
                     var block = JSON.parse( sessionStorage[ "next_spaceblock" ] );
                     spacechain.push([ hash, JSON.stringify( block ), txid ]);
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                    sessionStorage[ "spaceblock_hash" ] = "";
+                    sessionStorage[ "next_spaceblock" ] = "";
                 }
             }
             async function requestSwap() {
@@ -1766,6 +1810,7 @@
                 socket.send( JSON.stringify( [ "EVENT", signedEvent ] ) );
             }
             function mineOnLoop() {
+                if ( !sessionStorage[ "mining" ] ) return;
                 announceIStartedMining();
                 //announce yourself every 12 hours
                 setTimeout( function() {mineOnLoop();}, 60000 * 10 );
@@ -1942,9 +1987,12 @@
                     <!-- <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
                     <button class="manage_your_wallet">Manage your wallet (and invite more users)</button>
                     <button class="mine_spaceblocks">Mine spaceblocks (and invite more miners)</button> -->
-                    <button class="mine_spaceblocks">Mine spaceblocks</button>
+                    <button class="mine_spaceblocks">Mining Center</button>
                 </div>
             </div>
+            <p class="newb_warning">
+                <span style="font-weight: bold;">Read before clicking!</span> Your spacechain will be stored on *your computer only* until other people on your network download your blocks from you and validate them. Bitcoin miners won't serve your spacechain's blocks. (They don't even know your spacechain exists, because spacechains use *blind* merge mining.) If you make a spacechain, other people won't be able to view it or see it, even if you share a link to it, unless they have someone to get its blocks from. Therefore, I <span style="font-weight: bold;">strongly recommend</span> you register as a miner of your own spacechain in the Mining Center (you'll see it after you create your spacechain) and then keep the Mining Center open until many other people start mining your spacechain too. The way I coded this up, users of a spacechain can only get blocks by requesting them directly from miners of a spacechain (that can change in the future but it's how it works right now), and initially that's probably just going to be you. So if you close the Mining Center before anyone else is serving your blocks, no one will be able to view it. Just like how the bitcoin network would completely halt if all the nodes on the bitcoin network all turned off at the same time, your spacechain will appear completely blockless if no one is mining it and thus serving its blocks to your users.
+            </p>
         </div>
         <div class="spaceblock_explorer">
             <p><button class="view_network">Back</button></p>
@@ -1956,6 +2004,7 @@
         <div class="mining_center">
             <h1>Welcome to the mining center</h1>
             <p><button class="view_network">Back</button></p>
+            <div class="miner_registration"></div>
             <p class="space_blocksheight">Blockheight: <span class="space_blockheight_count">0</span></p>
             <p>
                 Create next block
@@ -1981,12 +2030,13 @@
             </div>
         </div>
         <script>
+            if ( $_GET[ "chain" ] ) $( '.newb_warning' ).onload = $( '.newb_warning' ).style.display = "none";
             $( '.launch_page_btn' ).onclick = async function() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_page' ).style.display = "block";
                 await prepareAnchor();
             }
-            $( '.genesis_block_submit' ).onclick = function() {
+            $( '.genesis_block_submit' ).onclick = async function() {
                 var conf = confirm( `Are you sure you want to use this data? \n\nName: ${$( 'input[ name="name_your_spacechain" ]' ).value}\nMessage: ${$( 'textarea[ name="genesis_message_input" ]' ).value}` );
                 if ( !conf ) return;
                 $( '.launch_step_1' ).style.display = "none";
@@ -1995,21 +2045,15 @@
                 $( '.genesis_block_finalized .genesis_block input' ).value = $( 'input[ name="name_your_spacechain" ]' ).value;
                 $( '.genesis_block_finalized .genesis_block textarea' ).value = $( 'textarea[ name="genesis_message_input" ]' ).value;
             }
-            function step3() {
-                $( '.home' ).style.display = "none";
-                $( '.launch_step_1' ).style.display = "none";
-                $( '.launch_step_2' ).style.display = "none";
-                $( '.launch_page' ).style.display = "block";
-                $( '.launchpad' ).style.display = "flex";
-            }
             $( '.view_your_blockchain' ).onclick = async function() {
                 $( '.launch_page' ).style.display = "none";
                 $( '.spaceblock_explorer' ).style.display = "block";
-                var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                 $( '.spaceblocks_loading' ).style.display = "none";
                 $( '.spaceblocks' ).innerHTML = ``;
                 getSpacechainHashes().forEach( async function( block, index ) {
-                    var anchor_tx = findAnchorAmongCandidates( candidate_anchors, block );
+                    var anchor_tx = spacechain[ index ][ 2 ];
+                    var txdata = await getData( `https://mempool.space/testnet/api/tx/${anchor_tx}` );
+                    var confirmed = JSON.parse( txdata )[ "status" ][ "confirmed" ];
                     var anchor_fee = await getFeePaidByTx( anchor_tx );
                     var blocksize = textToHex( JSON.stringify( getBlockFromSpacechain( block )[ 0 ] ) ).length / 2;
                     var transactions = JSON.parse( getBlockFromSpacechain( block )[ 0 ] );
@@ -2031,7 +2075,10 @@
                     div.innerHTML += `<hr>`;
                     div.innerHTML += `<h2>Block ${index + 1}<h2>`;
                     div.innerHTML += `<p>Hash: ${block}<p>`;
-                    div.innerHTML += `<p>Anchorpoint: ${anchor_tx}<p>`;
+                    div.innerHTML += `<p>Anchor: ${anchor_tx}<p>`;
+                    if ( !confirmed ) {
+                        div.innerHTML += `<p style="color: red;">The anchor transaction for this block is not yet confirmed on the bitcoin blockchain. No one else can see this block except you until its anchor is confirmed. Even if you serve this block to others, their client will consider it invalid (and thus not display it) until its anchor is confirmed.<p>`;                        
+                    }
                     div.innerHTML += `<p>Anchor fee: ${anchor_fee} sats<p>`;
                     div.innerHTML += `<p>Total size: ${blocksize} bytes<p>`;
                     div.innerHTML += `<p>Number of transactions: ${transactions.length - 1}<p>`;
@@ -2063,6 +2110,19 @@
                 $( '.launch_page' ).style.display = "none";
                 $( '.mining_center' ).style.display = "block";
                 $( '.space_blockheight_count' ).innerText = String( getSpacechainHashes().length );
+                if ( !sessionStorage[ "mining" ] ) {
+                    var button = document.createElement( "button" );
+                    button.innerText = "Register as a miner of this spacechain";
+                    button.onclick = function() {startMining();}
+                    $( '.miner_registration' ).innerHTML = "";
+                    $( '.miner_registration' ).append( button );
+                } else {
+                    var button = document.createElement( "button" );
+                    button.innerText = "Deregister as a miner of this spacechain";
+                    button.onclick = function() {stopMining();}
+                    $( '.miner_registration' ).innerHTML = "";
+                    $( '.miner_registration' ).append( button );
+                }
             }
             $( '.mine_new_block' ).onclick = async function() {
                 var prev_hash = getSpacechainHashes()[ getSpacechainHashes().length - 1 ];
