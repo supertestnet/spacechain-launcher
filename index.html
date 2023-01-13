@@ -31,7 +31,7 @@
                     height: auto;
                 }
                 .launch_page, .genesis_block_finalized, .payment_div_container, .new_block_payment_div_container,
-                .launchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions {
+                .prelaunchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions {
                     display: none;
                 }
                 .genesis_block_finalized .genesis_block_title {
@@ -91,6 +91,7 @@
                     height: 40px;
                 }
                 .launchpad {
+                    display: flex;
                     justify-content: space-between;
                 }
                 .launchpad button {
@@ -127,6 +128,11 @@
             if ( $_GET[ "mining" ] == "true" ) {
                 sessionStorage[ "mining" ] = true;
             }
+            //removed the following line when I revised the sync procedure
+            //sessionStorage[ "headers_synced" ] = "";
+            sessionStorage[ "block_after_theft" ] = "";
+            sessionStorage[ "block_being_sought" ] = "";
+            sessionStorage[ "userdata" ] = "[]";
             function view_network_home() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_step_1' ).style.display = "none";
@@ -137,19 +143,29 @@
                 $( '.mining_center' ).style.display = "none";
                 $( '.behold_the_network' ).style.display = "block";
                 $( '.launch_page' ).style.display = "block";
-                $( '.launchpad' ).style.display = "flex";
+                $( '.prelaunchpad' ).style.display = "block";
                 $( '.launch_step_3' ).style.display = "block";
+                var num_of_miners = myminers.length;
+                $( '.num_of_miners' ).innerText = myminers.length;
+                if ( num_of_miners == 1 ) {
+                    $( '.is_or_are' ).innerText = "is";                    
+                }
+                if ( num_of_miners == 1 ) {
+                    $( '.person_or_people' ).innerText = "person";                    
+                }
             }
             var chain_til_theft_or_blockheight = [];
             async function syncHeaders() {
-                await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
-                await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
-                sessionStorage[ "headers_synced" ] = true;
+                //removed the following lines when I revised the sync procedure
+                //await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
+                //await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
+                //sessionStorage[ "headers_synced" ] = true;
             }
             if ( $_GET[ "chain" ] ) {
                 //the next line syncs headers until the first theft, if any
                 chain_til_theft_or_blockheight.push( $_GET[ "chain" ] );
-                syncHeaders();
+                //removed the following line when I revised the sync procedure
+                //syncHeaders();
                 window.onload = view_network_home;
             }
             if ( $_GET[ "chain" ] && anchor_utxos_in_my_spacechain[ 0 ] != $_GET[ "chain" ] ) {
@@ -157,6 +173,7 @@
                 anchor_utxos_in_my_spacechain.push( $_GET[ "chain" ] );
                 localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
             }
+            //internet functions
             async function getData( url ) {
                 var rtext = "";
                 function inner_get( url ) {
@@ -187,15 +204,29 @@
                 var returnable = await isResponseReady();
                 return returnable;
             }
-            function postData( url, json, content_type = "", apikey = "" ) {
-                return new Promise( function( resolve, reject ) {
+            // function postData( url, json, content_type = "", apikey = "" ) {
+            //     return new Promise( function( resolve, reject ) {
+            //         var xhttp = new XMLHttpRequest();
+            //         xhttp.onreadystatechange = function() {
+            //             if ( this.readyState == 4 && ( this.status >= 200 && this.status < 300 ) ) {
+            //                 resolve( xhttp.responseText );
+            //             }
+            //         }
+            //         xhttp.open( `POST`, url, true );
+            //         if ( content_type ) {
+            //             xhttp.setRequestHeader( `Content-Type`, content_type );
+            //         }
+            //         if ( apikey ) {
+            //             xhttp.setRequestHeader( `X-Api-Key`, apikey );
+            //         }
+            //         xhttp.send( json );
+            //     });
+            // }
+            async function postData( url, json, content_type = "", apikey = "" ) {
+                var rtext = "";
+                function inner_post( url, json, content_type = "", apikey = "" ) {
                     var xhttp = new XMLHttpRequest();
-                    xhttp.onreadystatechange = function() {
-                        if ( this.readyState == 4 && ( this.status >= 200 && this.status < 300 ) ) {
-                            resolve( xhttp.responseText );
-                        }
-                    }
-                    xhttp.open( `POST`, url, true );
+                    xhttp.open( "POST", url, true );
                     if ( content_type ) {
                         xhttp.setRequestHeader( `Content-Type`, content_type );
                     }
@@ -203,7 +234,29 @@
                         xhttp.setRequestHeader( `X-Api-Key`, apikey );
                     }
                     xhttp.send( json );
-                });
+                    return xhttp;
+                }
+                var data = inner_post( url, json, content_type, apikey );
+                data.onerror = function( e ) {
+                    rtext = "error";
+                }
+                async function isResponseReady() {
+                    return new Promise( function( resolve, reject ) {
+                        if ( rtext == "error" ) {
+                            resolve( rtext );
+                        }
+                        if ( !data.responseText || data.readyState != 4 ) {
+                            setTimeout( async function() {
+                                var msg = await isResponseReady();
+                                resolve( msg );
+                            }, 50 );
+                        } else {
+                            resolve( data.responseText );
+                        }
+                    });
+                }
+                var returnable = await isResponseReady();
+                return returnable;
             }
             function waitSomeSeconds( num ) {
                 var num = num.toString() + "000";
@@ -215,7 +268,7 @@
             async function getNote( item ) {
                 async function isNoteSetYet( note_i_seek ) {
                     return new Promise( function( resolve, reject ) {
-                        if ( note_i_seek == "" ) {
+                        if ( !note_i_seek ) {
                             setTimeout( async function() {
                                 var msg = await isNoteSetYet( sessionStorage[ item ] );
                                 resolve( msg );
@@ -232,10 +285,15 @@
                 var returnable = await getTimeoutData();
                 return returnable;
             }
-
+            //end of internet functions
+            //bitcoin functions
             async function pushBTCpmt( rawtx ) {
-                    var txid = await postData( "https://mempool.space/testnet/api/tx", rawtx );
-                    return txid;
+                var txid = await postData( "https://mempool.space/testnet/api/tx", rawtx );
+                if ( txid.includes( "error" ) ) {
+                    alert( `Something terrible happened while trying to send your transaction, it was rejected by the node you sent it to. In case you want to try to recover the money, the private key is in sessionStorage[ "utxo_data" ] and the redeemscript you need to redeem the money can be recreated using the source code of this html page. (You'll have to learn how to use bitcoin-js though so you may want to ask a developer for help.)` );
+                    return;
+                }
+                return txid;
             }
             async function getMinFeeRate() {
                 var fees = await getData( "https://mempool.space/testnet/api/v1/fees/recommended" );
@@ -512,6 +570,20 @@
                 psbt.finalizeInput( 1, getFinalScripts2 );
                 return psbt.extractTransaction().toHex();
             }
+            async function getFeeToBeat( txid_you_spent, fee_you_paid ) {
+                var fee_to_beat = 0;
+                var mempool = await getData( "https://mempool.space/testnet/api/address/tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0/txs/mempool" );
+                JSON.parse( mempool ).forEach( function( tx ) {
+                    tx[ "vin" ].forEach( function( input ) {
+                        if ( input[ "txid" ] == txid_you_spent && tx[ "fee" ] > fee_you_paid ) {
+                            fee_to_beat > tx[ "fee" ];
+                        }
+                    });
+                });
+                return fee_to_beat;
+            }
+            //end of bitcoin functions
+            //spacechain functions
             async function waitThenCreate( address, amount, preimage, privkey, pubkey, timelock, serverPubkey, anchor_address ) {
                 //wait for the utxo to be ready
                 var utxo_is_ready = await utxoIsReady( address, amount, privkey, pubkey );
@@ -532,7 +604,6 @@
                 var txid = await pushBTCpmt( rawtx );
                 return txid;
             }
-
             async function waitThenMoveAnchor( address, amount, preimage, privkey, pubkey, timelock, serverPubkey, anchor_address ) {
                 //wait for the utxo to be ready
                 var utxo_is_ready = await utxoIsReady( address, amount, privkey, pubkey );
@@ -583,7 +654,7 @@
                 var started_waiting_time = Math.floor( Date.now() / 1000 );
                 async function isNoteSetYet( note_i_seek ) {
                     return new Promise( function( resolve, reject ) {
-                        if ( note_i_seek == "" ) {
+                        if ( !note_i_seek ) {
                             var current_time = Math.floor( Date.now() / 1000 );
                             if ( started_waiting_time + num_of_seconds_to_wait < current_time ) {
                                 resolve( "time_is_up" );
@@ -618,7 +689,7 @@
                 var started_waiting_time = Math.floor( Date.now() / 1000 );
                 async function isNoteSetYet( note_i_seek ) {
                     return new Promise( function( resolve, reject ) {
-                        if ( note_i_seek == "" ) {
+                        if ( !note_i_seek ) {
                             block_i_seek = sessionStorage[ "block_being_sought" ];
                             var current_time = Math.floor( Date.now() / 1000 );
                             console.log( block_i_seek );
@@ -642,6 +713,61 @@
                 var returnable = await getTimeoutData();
                 console.log( "returnable (should be whole block, not just a hash):", returnable );
                 return returnable;
+            }
+
+            async function showBlockInExplorer( block, index ) {
+                $( '.launch_page' ).style.display = "none";
+                $( '.spaceblock_explorer' ).style.display = "block";
+                $( '.spaceblocks_loading' ).style.display = "none";
+                $( '.spaceblocks' ).innerHTML = ``;
+                var anchor_tx = spacechain[ index ][ 2 ];
+                var blocksize = textToHex( JSON.stringify( getBlockFromSpacechain( block )[ 0 ] ) ).length / 2;
+                var transactions = JSON.parse( getBlockFromSpacechain( block )[ 0 ] );
+                var div = document.createElement( "div" );
+                div.className = `spaceblock_${index + 1}`;
+                if ( index ) {
+                    div.innerHTML += `<button class="prev_spaceblock_${index + 1}">Prev</button>`;
+                } else {
+                    div.innerHTML += `<button class="prev_spaceblock" disabled title="this is the genesis block, there are no previous blocks">Prev</button>`;
+                }
+                if ( index != getSpacechainHashes().length - 1 ) {
+                    div.innerHTML += `<button class="next_spaceblock_${index + 1}">Next</button>`;
+                } else {
+                    div.innerHTML += `<button class="next_spaceblock" disabled title="this is the last block, consider mining more!">Next</button>`;
+                }
+                div.innerHTML += `<hr>`;
+                div.innerHTML += `<h2>Block ${index + 1}<h2>`;
+                div.innerHTML += `<p>Hash: ${block}<p>`;
+                div.innerHTML += `<p>Anchor: ${anchor_tx}<p>`;
+                div.innerHTML += `<p style="color: red; display: none;" class="noconf_warning">The anchor transaction for this block is not yet confirmed on the bitcoin blockchain. Do not rely on its contents until it is confirmed because another spacechain miner can pay a higher fee to anchor a different block in this one's place.<p>`;                        
+                div.innerHTML += `<p>Anchor fee: <span class="anchor_fee">loading...</span><p>`;
+                div.innerHTML += `<p>Total size: ${blocksize} bytes<p>`;
+                div.innerHTML += `<p>Number of transactions: ${transactions.length - 1}<p>`;
+                div.innerHTML += `<p>Average transaction size: ${Math.round( blocksize / transactions.length - 1 )} bytes<p>`;
+                div.innerHTML += `<p>Metadata size: ${blocksize - Math.round( blocksize / transactions.length - 1 )} bytes<p>`;
+                div.innerHTML += `<h2>Transactions<h2>`;
+                transactions.forEach( function( tx, index ) {
+                    if ( index == 0 ) return;
+                    var pgraph = document.createElement( "p" );
+                    pgraph.innerText = `Tx${index}: ${tx}`;
+                    div.append( pgraph );
+                });
+                $( '.spaceblocks' ).append( div );
+                if ( index ) {
+                    $( `.prev_spaceblock_${index + 1}` ).onclick = function() {
+                        showBlockInExplorer( spacechain[ index - 1 ][ 0 ], index - 1 );
+                    }
+                }
+                if ( index != getSpacechainHashes().length - 1 ) {
+                    $( `.next_spaceblock_${index + 1}` ).onclick = function() {
+                        showBlockInExplorer( spacechain[ index + 1 ][ 0 ], index + 1 );
+                    }
+                }
+                var anchor_fee = await getFeePaidByTx( anchor_tx );
+                $( '.anchor_fee' ).innerText = anchor_fee + " sats";
+                var txdata = await getData( `https://mempool.space/testnet/api/tx/${anchor_tx}` );
+                var confirmed = JSON.parse( txdata )[ "status" ][ "confirmed" ];
+                if ( !confirmed ) $( '.noconf_warning' ).style.display = "block";
             }
 
             function createQR( content ) {
@@ -691,7 +817,6 @@
                 return Number( amount );
             }
             async function makeGenesisBlock() {
-                console.log( 0, "gen" );
                 //create a spaceblock template i.e. an empty array
                 var spaceblock = [];
                 //pass in an array of user data
@@ -700,7 +825,6 @@
                 var spacechain_msg = $( '.genesis_block_finalized .genesis_block textarea' ).value;
                 var json = JSON.stringify( {"spacechain_name": spacechain_name, "spacechain_msg": spacechain_msg} );
                 userdata.push( json );
-                console.log( 1, "gen" );
                 userdata.forEach( function( data ) {
                     //only let users add strings to the chain
                     if ( typeof( data ) == "string" ) {
@@ -712,7 +836,6 @@
                         }
                     }
                 });
-                console.log( 2, "gen" );
                 //merkle-ize the spaceblock
                 var unresolvedPromises = spaceblock.map( bitcoinjs.crypto.sha256 );
                 var leaves = await Promise.all( unresolvedPromises );
@@ -721,7 +844,6 @@
                 var merkleroot = tree.getRoot().toString( "hex" );
                 //get the 32 byte hash of the spaceblock being built upon
                 var parent = "0000000000000000000000000000000000000000000000000000000000000000";
-                console.log( 3, "gen" );
                 //make the block header
                 var header = parent + merkleroot;
                 //insert the header into the spaceblock as its first item
@@ -730,7 +852,6 @@
                 var hash = bitcoinjs.crypto.sha256( JSON.stringify( spaceblock ) ).toString( "hex" );
                 sessionStorage[ "spaceblock_hash" ] = hash;
                 sessionStorage[ "next_spaceblock" ] = JSON.stringify( spaceblock );
-                console.log( 4, "gen" );
             }
 
             async function getFeePaidByTx( tx ) {
@@ -743,10 +864,42 @@
                 return fee;
             }
 
+            async function getNumberOfTxsInvolvingAddress( address ) {
+                var data = await getData( `https://mempool.space/testnet/api/address/${address}` );
+                var tx_num_1 = JSON.parse( data )[ "chain_stats" ][ "tx_count" ];
+                var tx_num_2 = JSON.parse( data )[ "mempool_stats" ][ "tx_count" ];
+                //the line below is necessary because mempool.space only returns up to 50 mempool transactions for a given address
+                //if a data source other than mempool.space/testnet/ (or mempool.space mainnet) is used, remove the line
+                if ( tx_num_2 > 50 ) tx_num_2 = 50;
+                return tx_num_1 + tx_num_2;
+            }
+
             async function getNumberOfConfirmedTxsInvolvingAddress( address ) {
                 var data = await getData( `https://mempool.space/testnet/api/address/${address}` );
                 var tx_num = JSON.parse( data )[ "chain_stats" ][ "tx_count" ];
                 return tx_num;
+            }
+
+            async function getAllTxsInvolvingAddress( address ) {
+                var tx_num = await getNumberOfTxsInvolvingAddress( address );
+                var txs = [];
+                var last_seen = "";
+                var i; for ( i=0; i<tx_num; i = i + 25 ) {
+                    if ( last_seen ) {
+                        var url = `https://mempool.space/testnet/api/address/${address}/txs/${last_seen}`;
+                    } else {
+                        var url = `https://mempool.space/testnet/api/address/${address}/txs`;
+                    }
+                    var info = await getData( url );
+                    last_seen = JSON.parse( info )[ JSON.parse( info ).length - 1 ][ "txid" ];
+                    JSON.parse( info ).forEach( function( item ) {
+                        txs.push( item )
+                    });
+                    if ( $( '.spaceblocks_loading_percent' ) ) {
+                        $( '.spaceblocks_loading_percent' ).innerText = Math.floor( ( txs.length / tx_num ) * 10000 ) / 100;
+                    }
+                }
+                return txs;
             }
 
             async function getAllConfirmedTxsInvolvingAddress( address ) {
@@ -772,22 +925,24 @@
             }
 
             async function anchorWasStolen( anchor_tx ) {
-                //if the anchor tx created utxo with the right output number, script, and value, return false
-                var utxos = await getData( "https://mempool.space/testnet/api/address/tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0/utxo" );
+                //if the utxo list for this address contains at least one utxo with the right txid, output number, and value, mark the anchor tx as unspent
                 var this_anchor_is_unspent = false;
-                JSON.parse( utxos ).forEach( function( utxo ) {
+                var utxos = await getData( "https://mempool.space/testnet/api/address/tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0/utxo" );
+                JSON.parse( utxos ).every( function( utxo ) {
                     if (
                         utxo[ "txid" ] == anchor_tx &&
                         utxo[ "vout" ] == 0 &&
                         utxo[ "value" ] == 546
                     ) {
                         this_anchor_is_unspent = true;
+                        return false;
                     }
+                    return true;
                 });
                 if ( this_anchor_is_unspent ) return;
                 //otherwise check if it has a valid successor and if so return false
                 var anchor_was_stolen = true;
-                var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                 candidate_anchors.forEach( function( candidate ) {
                     if (
                         candidate[ "vin" ][ 0 ][ "txid" ] == anchor_tx &&
@@ -800,9 +955,11 @@
                 return anchor_was_stolen;
             }
 
-            async function getNewAnchorTx( old_anchor_tx ) {
+            async function getNewAnchorTx( old_anchor_tx, candidate_anchors ) {
                 var new_anchor_tx = "";
-                var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                if ( !candidate_anchors ) {
+                    var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                }
                 candidate_anchors.forEach( function( candidate ) {
                     if (
                         candidate[ "vin" ][ 0 ][ "txid" ] == old_anchor_tx &&
@@ -830,7 +987,6 @@
                 var recovery_anchor = "";
                 var num_of_known_spaceblocks = anchor_utxos_in_my_spacechain.length;
                 if ( anchor_was_stolen ) {
-                    console.log( "wait fifteen seconds..." );
                     //check if the chain was recovered after the theft
                     sessionStorage[ "block_after_theft" ] = "";
                     var block_after_theft = await getBlockAfterTheft( 15, num_of_known_spaceblocks + 1 );
@@ -846,11 +1002,11 @@
                         var block_hash = bitcoinjs.crypto.sha256( block_after_theft ).toString( "hex" );
                         sessionStorage[ "block_after_theft" ] = "";
                         //check if the block was anchored into bitcoin
-                        var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                        var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                         recovery_anchor = findAnchorAmongCandidates( candidate_anchors, block_hash );
                     }
                 }
-                if ( anchor_was_stolen && !recovery_anchor ) {console.log( "headers synced!" );return "make new one";}
+                if ( anchor_was_stolen && !recovery_anchor ) {return "make new one";}
                 if ( recovery_anchor ) {
                     latest_known_anchor_txid = recovery_anchor;
                 }
@@ -859,7 +1015,10 @@
                     anchor_utxos_in_my_spacechain.push( current_anchor );
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
                 }
-                var new_anchor = await getNewAnchorTx( latest_known_anchor_txid );
+                if ( !candidate_anchors ) {
+                    var candidate_anchors = null;
+                }
+                var new_anchor = await getNewAnchorTx( latest_known_anchor_txid, candidate_anchors );
                 if ( !new_anchor ) return current_anchor;
                 var latest_anchor = await returnLatestAnchorTxidOrThatNewOneMustBeMade( new_anchor );
                 return latest_anchor;
@@ -1048,7 +1207,7 @@
 
             async function resolveFork( block_1_hash, block_2_hash ) {
                 if ( block_1_hash == block_2_hash ) return block_1_hash;
-                var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                 //trace each block's history to the beginning of its chain
                 var chain_1 = await traceHistory( candidate_anchors, block_1_hash );
                 console.log( "chain_1:", chain_1 );
@@ -1295,6 +1454,7 @@
                 syncChain();
                 return block_2_hash;
             }
+            //end of spacechain functions
         </script>
         <script>
             var { getSharedSecret, schnorr, utils } = nobleSecp256k1;
@@ -1328,11 +1488,13 @@
                     console.log( "not mining" );
                 }
                 if ( !$_GET[ "chain" ] ) return;
+                //removed the following lines when I revised the sync procedure
                 //wait til sessionStorage[ "headers_synced" ] is true
-                console.log( "waiting til headers are synced..." );
-                await getNote( "headers_synced" );
+                //console.log( "waiting til headers are synced..." );
+                //await getNote( "headers_synced" );
                 if ( $_GET[ "testing_no_sync" ] ) return;
-                console.log( "syncing chain!" );
+                //removed the following line when I revised the sync procedure
+                //console.log( "syncing chain!" );
                 syncChain();
             }
 
@@ -1362,12 +1524,9 @@
                         if ( miner[ 1 ] + 600 < Math.floor( Date.now() / 1000 ) ) myminers.splice( index, 1 );
                     });
                     //ignore miners on chains you aren't looking for
-                    console.log( 0, allminers, myminers );
                     if ( $_GET[ "chain" ] && message != $_GET[ "chain" ] ) return;
-                    console.log( 1, allminers, myminers );
                     //ignore yourself
                     if ( sender == pubKey ) return;
-                    console.log( 2, allminers, myminers );
                     //ignore miners already on the list
                     var miner_is_in_the_list = false;
                     allminers.every( function( miner ) {
@@ -1378,20 +1537,38 @@
                         return true;
                     });
                     if ( !miner_is_in_the_list ) {
-                        console.log( 3, allminers, myminers );
                         allminers.push( [sender, Math.floor( Date.now() / 1000 )] );
                     }
                     //shuffle the array of miners
                     shuffleArray( allminers );
-                    console.log( 4, allminers, myminers );
                     //fill the myminer array
                     allminers.forEach( function( miner ) {
-                        console.log( 5, allminers, myminers );
-                        if ( myminers.length >= 8 || myminers.includes( miner ) ) return;
-                        console.log( 6, allminers, myminers );
+                        //ignore miners already on the myminers list
+                        var miner_is_in_the_list = false;
+                        myminers.every( function( myminer ) {
+                            if ( miner[ 0 ] == myminer[ 0 ] ) {
+                                miner_is_in_the_list = true;
+                                return;
+                            }
+                            return true;
+                        });
+                        //do not talk to more than 8 miners at a time
+                        if ( myminers.length >= 8 || miner_is_in_the_list ) return;
                         myminers.push( miner );
-                        console.log( 7, allminers, myminers );
                     });
+                    //adjust the displayed number of miners on the spacechain
+                    var num_of_miners = myminers.length;
+                    $( '.num_of_miners' ).innerText = myminers.length;
+                    if ( num_of_miners == 1 ) {
+                        $( '.is_or_are' ).innerText = "is";
+                    } else {
+                        $( '.is_or_are' ).innerText = "are";
+                    }
+                    if ( num_of_miners == 1 ) {
+                        $( '.person_or_people' ).innerText = "person";
+                    } else {
+                        $( '.person_or_people' ).innerText = "people";
+                    }
                     return;
                 }
                 //remove miners who announce they stopped mining
@@ -1407,7 +1584,19 @@
                         if ( sender == miner[ 0 ] ) miner_is_in_myminers_list = true;
                         myminers.splice( index, 1 );
                     });
-                    if ( !myminers.includes( sender ) ) return;
+                    //adjust the displayed number of miners on the spacechain
+                    var num_of_miners = myminers.length;
+                    $( '.num_of_miners' ).innerText = myminers.length;
+                    if ( num_of_miners == 1 ) {
+                        $( '.is_or_are' ).innerText = "is";
+                    } else {
+                        $( '.is_or_are' ).innerText = "are";
+                    }
+                    if ( num_of_miners == 1 ) {
+                        $( '.person_or_people' ).innerText = "person";
+                    } else {
+                        $( '.person_or_people' ).innerText = "people";
+                    }
                     return;
                 }
                 console.log( "message:", message, "sent by:", sender );
@@ -1498,6 +1687,17 @@
                         response[ "block" ] = getBlockFromSpacechain( message[ "blockhash" ] )[ 0 ];
                         response = JSON.stringify( response );
                     }
+                    if ( 
+                        "blockhash" in message &&
+                        isHex( message[ "blockhash" ] ) &&
+                        message[ "blockhash" ].length == 64 &&
+                        !getBlockFromSpacechain( message[ "blockhash" ] )
+                    ) {
+                        var response = {}
+                        response[ "request_id" ] = message[ "request_id" ];
+                        response[ "error" ] = "Block not found";
+                        response = JSON.stringify( response );                        
+                    }
                     if (
                         "blocknum" in message &&
                         message[ "blocknum" ] &&
@@ -1510,6 +1710,18 @@
                         response[ "request_id" ] = message[ "request_id" ];
                         response[ "block" ] = spacechain[ message[ "blocknum" ] - 1 ][ 1 ];
                         response = JSON.stringify( response );
+                    }
+                    if (
+                        "blocknum" in message &&
+                        message[ "blocknum" ] &&
+                        !isNaN( message[ "blocknum" ] ) &&
+                        message[ "blocknum" ] > 0 &&
+                        !spacechain[ message[ "blocknum" ] - 1 ]
+                    ) {
+                        var response = {}
+                        response[ "request_id" ] = message[ "request_id" ];
+                        response[ "error" ] = "Block not found";
+                        response = JSON.stringify( response );                        
                     }
                     if ( !response ) {
                         var response = {}
@@ -1568,22 +1780,19 @@
                     var block_hash = bitcoinjs.crypto.sha256( claimed_block ).toString( "hex" );
                     claimed_block = JSON.parse( claimed_block );
                     //check if the block was anchored into bitcoin
-                    var candidate_anchors = await getAllConfirmedTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                    var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                     var claimed_anchor_tx = findAnchorAmongCandidates( candidate_anchors, block_hash );
                     console.log( 0, `claimed_anchor_tx_for ${block_hash}:`, claimed_anchor_tx );
                     //if the block is not anchored, ignore it
                     if ( !claimed_anchor_tx ) return;
-                    console.log( 1 );
                     //check if the block's anchor transaction used an anchor_utxo from your spacechain
                     //if the block's anchor transaction is not on my list, ignore it
                     if ( !anchor_utxos_in_my_spacechain.includes( claimed_anchor_tx ) ) return;
-                    console.log( 2 );
                     //otherwise, if your chain has zero blocks, check that this block's parent is all zeroes
                     if (
                         !getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) == "0000000000000000000000000000000000000000000000000000000000000000"
                     ) {
-                        console.log( 3 );
                         //it is a new block so add it to your own chain
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
@@ -1595,7 +1804,6 @@
                         claimed_block[ 0 ].substring( 0, 64 ) == getSpacechainHashes()[ getSpacechainHashes().length - 1 ]
                     ) {
                         //it is a new block so add it to your own chain
-                        console.log( 4, claimed_block[ 0 ].substring( 0, 64 ), getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                         requestBlock( getSpacechainHashes().length + 1 );
@@ -1604,7 +1812,6 @@
                         getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) != getSpacechainHashes()[ getSpacechainHashes().length - 1 ]
                     ) {
-                        console.log( 5, claimed_block[ 0 ].substring( 0, 64 ), getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
                         //if your chain has blocks and this new block does not build on your latest block
                         //then there is a fork, so resolve the fork and resync the chain
                         var latest_block = getBlockFromSpacechain( getSpacechainHashes()[ getSpacechainHashes().length - 1 ] )[ 0 ];
@@ -1634,6 +1841,7 @@
                 button.onclick = function() {stopMining();}
                 $( '.miner_registration' ).innerHTML = "";
                 $( '.miner_registration' ).append( button );
+                $( '.mine_new_block' ).style.display = "inline";
             }
 
             function stopMining() {
@@ -1645,6 +1853,7 @@
                 button.onclick = function() {startMining();}
                 $( '.miner_registration' ).innerHTML = "";
                 $( '.miner_registration' ).append( button );
+                $( '.mine_new_block' ).style.display = "none";
             }
 
             async function getSignedEvent(event, privateKey) {
@@ -1702,9 +1911,8 @@
                 var preimage = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" );
                 var payment_hash = bitcoinjs.crypto.sha256( hexToBytes( preimage ) ).toString( "hex" );
                 var swap_address = getSwapAddress( pubkey, pubkey, payment_hash, timelock );
-                console.log( 0, page );
+                sessionStorage[ "utxo_data" ] = JSON.stringify( {"privkey":privkey,"pubkey":pubkey,"preimage":preimage,"pmthash":payment_hash,"timelock":timelock,"amount":amount} );
                 if ( page == "launch_page" ) {
-                    console.log( 1 );
                     $( '.launch_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
                     $( '.launch_payment_link' ).href = "bitcoin:" + swap_address;
                     $( '.launch_payment_caption' ).value = "bitcoin:" + swap_address;
@@ -1723,11 +1931,8 @@
                     anchor_utxos_in_my_spacechain = [];
                     anchor_utxos_in_my_spacechain.push( txid );
                     localStorage[ "anchor_utxos_in_my_spacechain" ] = JSON.stringify( anchor_utxos_in_my_spacechain );
-                    console.log( 0, "gen" );
                     spacechain.push([ hash, JSON.stringify( block ), txid ]);
-                    console.log( 1, "gen" );
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
-                    console.log( 2, "gen" );
                     sessionStorage[ "spaceblock_hash" ] = "";
                     sessionStorage[ "next_spaceblock" ] = "";
                     console.log( "my spacechain:", spacechain );
@@ -1816,6 +2021,7 @@
                 setTimeout( function() {mineOnLoop();}, 60000 * 10 );
             }
             function requestBlock( num_or_hash, investigating_theft, tracing_history ) {
+                console.log( "I will request block", num_or_hash );
                 //ask each miner for your latest block and the block after it
                 //a function in handleMessage
                 var offset = 0;
@@ -1857,14 +2063,35 @@
                         myminers.splice( index - offset, 1 );
                         offset = offset + 1;
                         pending_block_requests.splice( pending_block_requests.indexOf( request_id ), 1 );
+                        //adjust the displayed number of miners on the spacechain
+                        var num_of_miners = myminers.length;
+                        $( '.num_of_miners' ).innerText = myminers.length;
+                        if ( num_of_miners == 1 ) {
+                            $( '.is_or_are' ).innerText = "is";
+                        } else {
+                            $( '.is_or_are' ).innerText = "are";
+                        }
+                        if ( num_of_miners == 1 ) {
+                            $( '.person_or_people' ).innerText = "person";
+                        } else {
+                            $( '.person_or_people' ).innerText = "people";
+                        }
                     }, 10000 );
                     socket.send( JSON.stringify( [ "EVENT", signedEvent ] ) );
                 });
             }
             async function syncChain() {
+                console.log( "started syncing headers..." );
+                await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
+                console.log( "almost done syncing headers..." );
+                await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
+                console.log( "syncing chain!" );
                 if ( myminers.length ) {
                     requestBlock( getSpacechainHashes().length + 1 );
-                    setTimeout( function() {syncChain();}, 60000 );
+                    setTimeout( function() {
+                        console.log( "waiting 60 seconds to request another block" );
+                        syncChain();
+                    }, 60000 );
                 } else {
                     console.log( "there are no miners right now, trying again in 5 seconds" );
                     setTimeout( function() {syncChain();}, 5000 );
@@ -1917,6 +2144,7 @@
             </p>
             <p>
                 <button class="launch_page_btn">Make a spacechain</button>
+                <button class="view_first_spacechain">View the first spacechain</button>
             </p>
         </div>
         <div class="launch_page">
@@ -1982,12 +2210,17 @@
                 <p class="behold_the_network">
                     Behold the network
                 </p>
-                <div class="launchpad">
-                    <button class="view_your_blockchain">View your blockchain</button>
-                    <!-- <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
-                    <button class="manage_your_wallet">Manage your wallet (and invite more users)</button>
-                    <button class="mine_spaceblocks">Mine spaceblocks (and invite more miners)</button> -->
-                    <button class="mine_spaceblocks">Mining Center</button>
+                <div class="prelaunchpad">
+                    <p>
+                        There <span class="is_or_are">are</span> currently <span class="num_of_miners">0</span> <span class="person_or_people">people</span> mining this spacechain, not counting yourself (if you are mining). Miners are who you get blocks from, so if no one is mining it, you will not see any blocks unless your browser downloaded them previously.
+                    </p>
+                    <div class="launchpad">
+                        <button class="view_your_blockchain">View blockchain</button>
+                        <!-- <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
+                        <button class="manage_your_wallet">Manage your wallet (and invite more users)</button>
+                        <button class="mine_spaceblocks">Mine spaceblocks (and invite more miners)</button> -->
+                        <button class="mine_spaceblocks">Mining Center</button>
+                    </div>
                 </div>
             </div>
             <p class="newb_warning">
@@ -2009,7 +2242,18 @@
             <p>
                 Create next block
             </p>
+            <p>
+                <h2>Transactions in block so far</h2>
+            </p>
+            <div class="messages_so_far">
+                <p class="none_so_far">
+                    None so far
+                </p>
+            </div>
             <textarea name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
+            <p>
+                <button class="add_msg_to_block">Add transaction to block</button>
+            </p>
             <p>
                 <button class="mine_new_block">Mine new block</button>
             </p>
@@ -2036,6 +2280,9 @@
                 $( '.launch_page' ).style.display = "block";
                 await prepareAnchor();
             }
+            $( '.view_first_spacechain' ).onclick = async function() {
+                window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6";
+            }
             $( '.genesis_block_submit' ).onclick = async function() {
                 var conf = confirm( `Are you sure you want to use this data? \n\nName: ${$( 'input[ name="name_your_spacechain" ]' ).value}\nMessage: ${$( 'textarea[ name="genesis_message_input" ]' ).value}` );
                 if ( !conf ) return;
@@ -2046,91 +2293,56 @@
                 $( '.genesis_block_finalized .genesis_block textarea' ).value = $( 'textarea[ name="genesis_message_input" ]' ).value;
             }
             $( '.view_your_blockchain' ).onclick = async function() {
-                $( '.launch_page' ).style.display = "none";
-                $( '.spaceblock_explorer' ).style.display = "block";
-                $( '.spaceblocks_loading' ).style.display = "none";
-                $( '.spaceblocks' ).innerHTML = ``;
-                getSpacechainHashes().forEach( async function( block, index ) {
-                    var anchor_tx = spacechain[ index ][ 2 ];
-                    var txdata = await getData( `https://mempool.space/testnet/api/tx/${anchor_tx}` );
-                    var confirmed = JSON.parse( txdata )[ "status" ][ "confirmed" ];
-                    var anchor_fee = await getFeePaidByTx( anchor_tx );
-                    var blocksize = textToHex( JSON.stringify( getBlockFromSpacechain( block )[ 0 ] ) ).length / 2;
-                    var transactions = JSON.parse( getBlockFromSpacechain( block )[ 0 ] );
-                    var div = document.createElement( "div" );
-                    div.className = `spaceblock_${index + 1}`;
-                    if ( index != getSpacechainHashes().length - 1 ) {
-                        div.style.display = "none";
-                    }
-                    if ( index ) {
-                        div.innerHTML += `<button class="prev_spaceblock_${index + 1}">Prev</button>`;
+                if ( !spacechain.length ) {
+                    var message = `You have not yet synced any blocks in this blockchain, please try again in a few seconds`;
+                    if ( !myminers.length ) {
+                        message = `No one is mining this spacechain and miners are who you get blocks from so you can't explore this blockchain until someone with at least one of its blocks starts mining`;
                     } else {
-                        div.innerHTML += `<button class="prev_spaceblock" disabled title="this is the genesis block, there are no previous blocks">Prev</button>`;
+                        syncChain();
                     }
-                    if ( index != getSpacechainHashes().length - 1 ) {
-                        div.innerHTML += `<button class="next_spaceblock_${index + 1}">Next</button>`;
-                    } else {
-                        div.innerHTML += `<button class="next_spaceblock" disabled title="this is the last block, consider mining more!">Next</button>`;
-                    }
-                    div.innerHTML += `<hr>`;
-                    div.innerHTML += `<h2>Block ${index + 1}<h2>`;
-                    div.innerHTML += `<p>Hash: ${block}<p>`;
-                    div.innerHTML += `<p>Anchor: ${anchor_tx}<p>`;
-                    if ( !confirmed ) {
-                        div.innerHTML += `<p style="color: red;">The anchor transaction for this block is not yet confirmed on the bitcoin blockchain. No one else can see this block except you until its anchor is confirmed. Even if you serve this block to others, their client will consider it invalid (and thus not display it) until its anchor is confirmed.<p>`;                        
-                    }
-                    div.innerHTML += `<p>Anchor fee: ${anchor_fee} sats<p>`;
-                    div.innerHTML += `<p>Total size: ${blocksize} bytes<p>`;
-                    div.innerHTML += `<p>Number of transactions: ${transactions.length - 1}<p>`;
-                    div.innerHTML += `<p>Average transaction size: ${Math.round( blocksize / transactions.length - 1 )} bytes<p>`;
-                    div.innerHTML += `<p>Metadata size: ${blocksize - Math.round( blocksize / transactions.length - 1 )} bytes<p>`;
-                    div.innerHTML += `<h2>Transactions<h2>`;
-                    transactions.forEach( function( tx, index ) {
-                        if ( index == 0 ) return;
-                        var pgraph = document.createElement( "p" );
-                        pgraph.innerText = `Tx${index}: ${tx}`;
-                        div.append( pgraph );
-                    });
-                    $( '.spaceblocks' ).append( div );
-                    if ( index ) {
-                        $( `.prev_spaceblock_${index + 1}` ).onclick = function() {
-                            $( `.spaceblock_${index + 1}` ).style.display = "none";
-                            $( `.spaceblock_${index}` ).style.display = "block";
-                        }
-                    }
-                    if ( index != getSpacechainHashes().length - 1 ) {
-                        $( `.next_spaceblock_${index + 1}` ).onclick = function() {
-                            $( `.spaceblock_${index + 1}` ).style.display = "none";
-                            $( `.spaceblock_${index + 2}` ).style.display = "block";
-                        }
-                    }
-                });
+                    alert( message );
+                    return;
+                }
+                var block = spacechain[ spacechain.length - 1 ][ 0 ];
+                var index = spacechain.length - 1;
+                showBlockInExplorer( block, index );
             }
             $( '.mine_spaceblocks' ).onclick = async function() {
                 $( '.launch_page' ).style.display = "none";
                 $( '.mining_center' ).style.display = "block";
                 $( '.space_blockheight_count' ).innerText = String( getSpacechainHashes().length );
+                $( 'textarea[ name="new_block_message_input"' ).value = "";
                 if ( !sessionStorage[ "mining" ] ) {
                     var button = document.createElement( "button" );
                     button.innerText = "Register as a miner of this spacechain";
                     button.onclick = function() {startMining();}
                     $( '.miner_registration' ).innerHTML = "";
                     $( '.miner_registration' ).append( button );
+                    $( '.mine_new_block' ).style.display = "none";
                 } else {
                     var button = document.createElement( "button" );
                     button.innerText = "Deregister as a miner of this spacechain";
                     button.onclick = function() {stopMining();}
                     $( '.miner_registration' ).innerHTML = "";
                     $( '.miner_registration' ).append( button );
+                    $( '.mine_new_block' ).style.display = "inline";
                 }
+            }
+            $( '.add_msg_to_block' ).onclick = async function() {
+                $( '.none_so_far' ).style.display = "none";
+                var msg = $( 'textarea[ name="new_block_message_input"' ).value;
+                var userdata = JSON.parse( sessionStorage[ "userdata" ] );
+                userdata.push( msg );
+                sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                console.log( sessionStorage[ "userdata" ] );
+                $( 'textarea[ name="new_block_message_input"' ).value = "";
+                $( '.messages_so_far' ).innerHTML += `<p>${msg}</p>`
             }
             $( '.mine_new_block' ).onclick = async function() {
                 var prev_hash = getSpacechainHashes()[ getSpacechainHashes().length - 1 ];
                 console.log( "previous hash:", prev_hash );
                 //prepare data
-                var userdata = [];
-                var spacechain_msg = $( 'textarea[ name="new_block_message_input"' ).value;
-                userdata.push( spacechain_msg );
+                var userdata = JSON.parse( sessionStorage[ "userdata" ] );
                 //generate the block
                 console.log( userdata );
                 var [ hash, block ] = await generateBlock( userdata, getSpacechainHashes()[ getSpacechainHashes().length - 1 ] );
