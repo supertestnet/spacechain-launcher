@@ -982,13 +982,26 @@
                 return returnAnchorTxidsTilTheftOrCurrentBlockheight( chain );
             }
 
+            function getBlockheightByAnchorTxid( anchor_txid ) {
+                var blockheight = -1;
+                spacechain.every( function( block, index ) {
+                    if ( block[ 2 ] == anchor_txid ) {
+                        blockheight = index;
+                        return;
+                    }
+                    return true;
+                });
+                return blockheight;
+            }
+
             async function returnLatestAnchorTxidOrThatNewOneMustBeMade( latest_known_anchor_txid ) {
                 var anchor_was_stolen = await anchorWasStolen( latest_known_anchor_txid );
                 var recovery_anchor = "";
-                var num_of_known_spaceblocks = anchor_utxos_in_my_spacechain.length;
                 if ( anchor_was_stolen ) {
                     //check if the chain was recovered after the theft
                     sessionStorage[ "block_after_theft" ] = "";
+                    var chain_before_theft = await traceHistory( "", null, [], latest_known_anchor_txid );
+                    var num_of_known_spaceblocks = chain_before_theft.length;
                     var block_after_theft = await getBlockAfterTheft( 15, num_of_known_spaceblocks + 1 );
                     if ( block_after_theft == "fork_alert" ) {
                         //resolve the fork and set block_after_theft equal to the real block (json-stingified)
@@ -1190,16 +1203,37 @@
                     if ( arr1[ i ] == arr1.length - 1) return i + 1;
                 }
             }
-            async function traceHistory( candidate_anchors, blockhash, chain = [] ) {
-                var anchor_txid = findAnchorAmongCandidates( candidate_anchors, blockhash );
+            async function getBlockhashByAnchorTxid( anchor_txid ) {
+                var tx = await getData( `https://mempool.space/testnet/api/tx/${anchor_txid}` );
+                if ( tx == "Transaction not found" ) return "bad_txid";
+                tx = JSON.parse( tx );
+                if ( !tx[ "vin" ] || !tx[ "vin" ][ 0 ] || !tx[ "vin" ][ 0 ][ "witness" ] || tx[ "vin" ][ 0 ][ "witness" ].length - 2 < 0 ) return "bad_txid";
+                if ( tx[ "vin" ][ 0 ][ "witness" ][ tx[ "vin" ][ 0 ][ "witness" ].length - 2 ].length != 64 ) return "bad_txid";
+                if ( tx[ "vout" ][ 0 ][ "scriptpubkey_address" ] != "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" ) return "bad_txid";
+                if ( tx[ "vout" ][ 0 ][ "value" ] != 546 ) return "bad_txid";
+                return tx[ "vin" ][ 0 ][ "witness" ][ tx[ "vin" ][ 0 ][ "witness" ].length - 2 ];
+            }
+            async function traceHistory( candidate_anchors, blockhash, chain = [], anchor ) {
+                if ( !candidate_anchors ) {
+                    candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
+                }
+                if ( !anchor ) {
+                    var anchor_txid = findAnchorAmongCandidates( candidate_anchors, blockhash );                    
+                } else {
+                    var anchor_txid = anchor;
+                    blockhash = await getBlockhashByAnchorTxid( anchor_txid );
+                    if ( blockhash == "bad_txid" ) return "bad chain";
+                }
                 //console.log( "blockhash:", blockhash );
                 //console.log( "anchor_txid:", anchor_txid );
                 if ( !anchor_txid ) return "bad chain";
+                console.log( 0 );
                 chain.splice( 0, 0, anchor_txid );
                 sessionStorage[ "block_being_sought" ] = "";
                 var getting_my_block = await requestBlock2( 5, blockhash );
                 //console.log( "run this:", `var block = await requestBlock2( 5, "${blockhash}" );` );
                 if ( getting_my_block == "time_is_up" ) {console.log( "here is the block:", block );return "bad chain";}
+                console.log( 1 );
                 var parent_of_block = JSON.parse( getting_my_block )[ 0 ].substring( 0, 64 );
                 if ( parent_of_block == "0000000000000000000000000000000000000000000000000000000000000000" ) return chain;
                 return traceHistory( candidate_anchors, parent_of_block, chain );
