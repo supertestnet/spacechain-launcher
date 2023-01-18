@@ -31,7 +31,8 @@
                     height: auto;
                 }
                 .launch_page, .genesis_block_finalized, .payment_div_container, .new_block_payment_div_container,
-                .prelaunchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions {
+                .prelaunchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions,
+                .buy_and_sell_spacecoins, .pegzone, .spacecoin_offer, .burn_payment_div_container {
                     display: none;
                 }
                 .genesis_block_finalized .genesis_block_title {
@@ -56,18 +57,18 @@
                     display: flex;
                     flex-direction: column;
                 }
-                .payment_div, .new_block_payment_div {
+                .payment_div, .new_block_payment_div, .burn_payment_div {
                     max-width: 400px;
                     border: 1px solid black;
                 }
                 .qr_code {
                     width: 100%;
                 }
-                .launch_payment_caption_container, .new_block_payment_caption_container {
+                .launch_payment_caption_container, .new_block_payment_caption_container, .burn_payment_caption_container {
                     margin-top: -20px;
                     margin-bottom: 20px;
                 }
-                .launch_payment_caption, .new_block_payment_caption {
+                .launch_payment_caption, .new_block_payment_caption, .burn_payment_caption {
                     display: inline-block;
                     box-sizing: border-box;
                     width: calc( 90% - 40px );
@@ -82,7 +83,7 @@
                     vertical-align: middle;
                     margin-left: 10px;
                 }
-                .launch_payment_copier, .new_block_payment_copier {
+                .launch_payment_copier, .new_block_payment_copier, .burn_payment_copier {
                     box-sizing: border-box;
                     margin-left: 10px;
                     margin-right: 10px;
@@ -106,8 +107,8 @@
         <script src="https://bundle.run/browserify-cipher@1.0.1"></script>
         <script src="https://supertestnet.github.io/bitcoin-chess/js/qrcode.js"></script>
         <script src="https://bundle.run/varuint-bitcoin@1.1.2"></script>
+        <script src="https://bundle.run/bech32@2.0.0"></script>
         <script src="js/bolt11.js"></script>
-        <script src="https://supertestnet.github.io/bitcoin-chess/js/btcscriptparser.js"></script>
         <script>
             var $ = document.querySelector.bind( document );
             var $$ = document.querySelectorAll.bind( document );
@@ -135,6 +136,39 @@
             sessionStorage[ "block_after_theft" ] = "";
             sessionStorage[ "block_being_sought" ] = "";
             sessionStorage[ "userdata" ] = "[]";
+            async function view_offer() {
+                $( '.home' ).style.display = "none";
+                $( '.launch_step_1' ).style.display = "none";
+                $( '.launch_step_2' ).style.display = "none";
+                $( '.launch_instructions' ).style.display = "none";
+                $( '.step_3_title' ).style.display = "none";
+                $( '.spaceblock_explorer' ).style.display = "none";
+                $( '.mining_center' ).style.display = "none";
+                $( '.pegzone' ).style.display = "none";
+                $( '.spacecoin_offer' ).style.display = "block";
+                if ( $_GET[ "offer" ] == "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6" ) {
+                    var offer = document.createElement( "div" );
+                    offer.style = "border: 1px solid black; padding: 10px; margin: 10px;";
+                    offer.className = "sell_offer";
+                    var pgraph = document.createElement( "p" );
+                    pgraph.innerHTML = `Seller: <span class="buyer">The Void</span>`;
+                    offer.append( pgraph );
+                    var pgraph = document.createElement( "p" );
+                    pgraph.innerHTML = `Amount: <span class="min">546</span> - <span class="max">100,000,000,000</span> sats`;
+                    offer.append( pgraph );
+                    var pgraph = document.createElement( "p" );
+                    pgraph.innerHTML = `Fee type: <span class="orderbook_fee_type">Absolute</span>`;
+                    offer.append( pgraph );
+                    var pgraph = document.createElement( "p" );
+                    pgraph.innerHTML = `Fee: <span class="orderbook_fee">loading...</span>`;
+                    offer.append( pgraph );
+                    $( '.offer_details' ).append( offer );
+                    $( '.spacecoins_to_buy' ).max = 100000000000;
+                    var feerate = await getMinFeeRate();
+                    var fee = 300 * feerate;
+                    $( '.orderbook_fee' ).innerText = String( fee ) + " sats";
+                }
+            }
             function view_network_home() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_step_1' ).style.display = "none";
@@ -155,6 +189,8 @@
                 if ( num_of_miners == 1 ) {
                     $( '.person_or_people' ).innerText = "person";                    
                 }
+                if ( !$_GET[ "testing_pegzone" ] ) return;
+                $( '.buy_and_sell_spacecoins' ).style.display = "inline";
             }
             var chain_til_theft_or_blockheight = [];
             async function syncHeaders() {
@@ -169,6 +205,9 @@
                 //removed the following line when I revised the sync procedure
                 //syncHeaders();
                 window.onload = view_network_home;
+            }
+            if ( $_GET[ "offer" ] ) {
+                window.onload = view_offer;
             }
             if ( $_GET[ "chain" ] && anchor_utxos_in_my_spacechain[ 0 ] != $_GET[ "chain" ] ) {
                 anchor_utxos_in_my_spacechain = [];
@@ -320,6 +359,12 @@
             function bytesToHex( bytes ) {
                 return bytes.reduce( ( str, byte ) => str + byte.toString( 16 ).padStart( 2, '0' ), '' );
             }
+            function hexToText( hex ) {
+                var bytes = new Uint8Array(Math.ceil(hex.length / 2));
+                for (var i = 0; i < hex.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+                var text = new TextDecoder().decode( bytes );
+                return text;
+            }
             function base64ToHex( str ) {
                 var raw = atob( str );
                 var result = '';
@@ -328,6 +373,15 @@
                     result += ( hex.length === 2 ? hex : '0' + hex );
                 }
                 return result;
+            }
+            function hexToBech32( prefix, hex ) {
+                var words = bech32.bech32m.toWords( hexToBytes( hex ) );
+                return bech32.bech32m.encode( prefix, words );
+            }
+
+            function bech32ToHex( bech32string ) {
+                var decoded = bech32.bech32m.fromWords( bech32.bech32m.decode( bech32string ).words );
+                return bytesToHex( decoded );
             }
             function witnessStackToScriptWitness(witness) {
                 let buffer2 = buffer.Buffer.allocUnsafe(0);
@@ -572,6 +626,59 @@
                 psbt.finalizeInput( 1, getFinalScripts2 );
                 return psbt.extractTransaction().toHex();
             }
+            function getRawTxThatMakesAnOpReturn( utxo, timelock, serverPubkey, pmthash, op_return, preimage, amount_to_burn ) {
+                var data = Buffer.from( op_return, "hex" );
+                var embed = bitcoinjs.payments.embed({data: [data], network: bitcoinjs.networks.testnet});
+                var userPubkey = utxo[ "pubkey" ];
+                var witnessscript = generateHtlcWithServerTimelocked( serverPubkey, userPubkey, pmthash, timelock );
+                //the utxo object is used like this: utxo[ "tx_id" ], utxo[ "output_number" ],
+                //utxo[ "amount" ], utxo[ "privkey" ], utxo[ "pubkey" ]
+                var psbt = new bitcoinjs.Psbt({network: bitcoinjs.networks.testnet});
+                psbt.addInput({
+                  hash: utxo[ "tx_id" ],
+                  index: utxo[ "output_number" ],
+                  sequence: 0xfffffffe,
+                  witnessUtxo: {
+                    script: buffer.Buffer.from( '0020' +
+                      bitcoinjs.crypto.sha256( buffer.Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
+                    value: utxo[ "amount" ]
+                  },
+                  witnessScript: buffer.Buffer.from( witnessscript, "hex" )
+                });
+                psbt
+                  .addOutput({
+                    script: embed.output,
+                    value: amount_to_burn,
+                });
+                psbt.signInput( 0, bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( utxo[ "privkey" ], "hex" ) ) );
+
+                var getFinalScripts = ( txindex, input, script ) => {
+                  // Step 1: Check to make sure the meaningful locking script matches what you expect.
+                  var decompiled = bitcoinjs.script.decompile( script )
+                  if ( !decompiled || decompiled[0] !== bitcoinjs.opcodes.OP_DROP ) {
+                    throw new Error( `Can not finalize input #${txindex}` )
+                  }
+
+                  // Step 2: Create final scripts
+                  var witnessStackClaimBranch = bitcoinjs.payments.p2wsh({
+                    redeem: {
+                      output: script,
+                      input: bitcoinjs.script.compile([
+                        input.partialSig[ 0 ].signature,
+                        buffer.Buffer.from( preimage, "hex" ),
+                        buffer.Buffer.from( "", "hex" ),
+                      ]),
+                    }
+                  });
+                  console.log( "First branch witness stack:" )
+                  console.log( witnessStackClaimBranch.witness.map( x => x.toString( "hex" ) ) )
+                  return {
+                    finalScriptWitness: witnessStackToScriptWitness( witnessStackClaimBranch.witness )
+                  }
+                }
+                psbt.finalizeInput( 0, getFinalScripts );
+                return psbt.extractTransaction().toHex();
+            }
             async function getFeeToBeat( txid_you_spent, fee_you_paid ) {
                 var fee_to_beat = 0;
                 var mempool = await getData( "https://mempool.space/testnet/api/address/tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0/txs/mempool" );
@@ -583,6 +690,17 @@
                     });
                 });
                 return fee_to_beat;
+            }
+            function isValidBitcoinTransaction( rawtx ) {
+                try {
+                    bitcoinjs.Transaction.fromHex( rawtx );
+                    return true;
+                } catch( e ) {
+                }
+                return false;
+            }
+            function reverseHexString( s ) {
+                return s.match(/[a-fA-F0-9]{2}/g).reverse().join('');
             }
             //end of bitcoin functions
             //spacechain functions
@@ -650,6 +768,18 @@
                     var txid = await pushBTCpmt( rawtx );
                     return txid;
                 }
+            }
+            async function waitThenBurn( address, amount_to_burn_plus_fee, preimage, privkey, pubkey, timelock, serverPubkey, op_return, amount_to_burn ) {
+                console.log( "op_return:", op_return );
+                //wait for the utxo to be ready
+                var utxo_is_ready = await utxoIsReady( address, amount_to_burn_plus_fee, privkey, pubkey );
+                var utxos = await getUTXOsInAddress( address, privkey, pubkey );
+                var utxo = utxos[ 0 ];
+                var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
+                //add the op_return to bitcoin's blockchain
+                var rawtx = getRawTxThatMakesAnOpReturn( utxo, timelock, serverPubkey, pmthash, op_return, preimage, amount_to_burn );
+                var txid = await pushBTCpmt( rawtx );
+                return txid;
             }
             async function getBlockAfterTheft( num_of_seconds_to_wait, spaceblock_to_request ) {
                 requestBlock( spaceblock_to_request, true );
@@ -799,10 +929,15 @@
                 if ( !h ) return;
                 var length = h.length;
                 if ( length % 2 ) return;
-                if ( length > 66 ) return;
-                var a = BigInt( "0x" + h, "hex" );
+                try {
+                    var a = BigInt( "0x" + h, "hex" );
+                } catch( e ) {
+                    return;
+                }
                 var unpadded = a.toString( 16 );
-                var padding = "000000000000000000000000000000000000000000000000000000000000000000";
+                var padding = [];
+                var i; for ( i=0; i<length; i++ ) padding.push( 0 );
+                padding = padding.join( "" );
                 padding = padding + unpadded.toString();
                 padding = padding.slice( -Math.abs( length ) );
                 return ( padding === h );
@@ -1490,7 +1625,120 @@
                 syncChain();
                 return block_2_hash;
             }
+            function isLikelySpaceSig( sig ) {
+                var sigstuff = sig.split( "-" );
+                if ( sigstuff.length != 3 ) return;
+                if ( !isHex( sigstuff[ 0 ] ) && sigstuff[ 0 ] != "" ) return;
+                return true;
+            }
+            async function unlockingScriptIsValid( stack, tx ) {
+                if ( typeof( stack ) != "object" ) return;
+                if ( !stack[ 0 ] ) return;
+                if ( stack.length > 1000 ) return;
+                var script = stack[ stack.length - 1 ];
+                if ( !isHex( script ) ) return;
+                if ( !isValidJson( hexToText( script ) ) ) return;
+                script = JSON.parse( hexToText( script ) );
+                stack = Array.from( stack );
+                stack.splice( stack.length - 1, 1 );
+                if ( !script[ 0 ] && stack.length == 1 && stack[ 0 ] == "01" ) return true;
+                if ( !script[ 0 ] ) return;
+                //console.log( 6 - script.length, script[ 0 ] );
+                if ( script[ 0 ] == "OP_DUP" ) {
+                    stack.push( stack[ stack.length - 1 ] );
+                    script.splice( 0, 1 );
+                    var locking_script_hex = textToHex( JSON.stringify( script ) );
+                    stack.push( locking_script_hex );
+                    return unlockingScriptIsValid( stack, tx );
+                }
+                if ( script[ 0 ] == "OP_HASH160" ) {
+                    var item_to_hash = stack[ stack.length - 1 ];
+                    if ( !isHex( item_to_hash ) ) return;
+                    var hash = bitcoinjs.crypto.hash160( hexToBytes( item_to_hash ) ).toString( "hex" );
+                    stack.splice( stack.length - 1, 1, hash );
+                    script.splice( 0, 1 );
+                    var locking_script_hex = textToHex( JSON.stringify( script ) );
+                    stack.push( locking_script_hex );
+                    return unlockingScriptIsValid( stack, tx );
+                }
+                if ( isHex( script[ 0 ] ) || isLikelySpaceSig( script[ 0 ] ) ) {
+                    stack.push( script[ 0 ] );
+                    script.splice( 0, 1 );
+                    var locking_script_hex = textToHex( JSON.stringify( script ) );
+                    stack.push( locking_script_hex );
+                    return unlockingScriptIsValid( stack, tx );
+                }
+                if ( script[ 0 ] == "OP_EQUALVERIFY" ) {
+                    if ( stack[ stack.length - 1 ] != stack[ stack.length - 2 ] ) return;
+                    stack.splice( stack.length - 2, 2 );
+                    script.splice( 0, 1 );
+                    var locking_script_hex = textToHex( JSON.stringify( script ) );
+                    stack.push( locking_script_hex );
+                    return unlockingScriptIsValid( stack, tx );
+                }
+                if ( script[ 0 ] == "OP_CHECKSIG" ) {
+                    var sig_is_good = false;
+                    if ( !stack[ stack.length - 2 ] ) return;
+                    if ( !isLikelySpaceSig( stack[ stack.length - 2 ] ) ) return;
+                    var sigstuff = stack[ stack.length - 2 ].split( "-" );
+                    var sighash_prep = JSON.parse( JSON.stringify( tx ) );
+                    if ( sigstuff[ 1 ] != "[*]" ) {
+                        if ( !isValidJson( sigstuff[ 1 ] ) ) return;
+                        var input_list = JSON.parse( sigstuff[ 1 ] );
+                        var all_numbers = true;
+                        input_list.every( function( item ) {
+                            if ( typeof( item ) != "number" ) {all_numbers = false; return;}
+                       return true;
+                        });
+                        if ( !all_numbers ) return;
+                        var highest_num = 0;
+                        input_list.forEach( function( item ) {
+                            if ( item > highest_num ) highest_num = item;
+                        });
+                        if ( highest_num > sighash_prep[ "inputs" ].length - 1 ) return;
+                        sighash_prep[ "inputs" ].forEach( function( input, index ) {
+                            if ( !input_list.includes( index ) ) sighash_prep[ "inputs" ].splice( index, 1 );
+                        });
+                    }
+                    if ( sigstuff[ 2 ] != "[*]" ) {
+                        if ( !isValidJson( sigstuff[ 2 ] ) ) return;
+                        var output_list = JSON.parse( sigstuff[ 2 ] );
+                        var all_numbers = true;
+                        output_list.every( function( item ) {
+                            if ( typeof( item ) != "number" ) {all_numbers = false; return;}
+                       return true;
+                        });
+                        if ( !all_numbers ) return;
+                        highest_num = 0;
+                        output_list.forEach( function( item ) {
+                            if ( item > highest_num ) highest_num = item;
+                        });
+                        if ( highest_num > sighash_prep[ "outputs" ].length - 1 ) return;
+                        sighash_prep[ "outputs" ].forEach( function( output, index ) {
+                            if ( !output_list.includes( index ) ) sighash_prep[ "outputs" ].splice( index, 1 );
+                        });
+                    }
+                    sighash_prep[ "inputs" ].forEach( function( input ) {delete input[ "redeem_script" ];});
+                    var sighash = bitcoinjs.crypto.sha256( JSON.stringify( sighash_prep ) );
+                    var keys = bitcoinjs.ECPair.fromPublicKey( Buffer.from( stack[ stack.length - 1 ], "hex" ) );
+                    sig_is_good = keys.verify( sighash, Buffer.from( sigstuff[ 0 ], "hex" ) );
+                    stack.splice( stack.length - 2, 2 );
+                    if ( sig_is_good ) {
+                        stack.push( "01" );
+                    } else {
+                        if ( sigstuff[ 0 ] ) return;
+                        stack.push( "00" );
+                    }
+                    script.splice( 0, 1 );
+                    var locking_script_hex = textToHex( JSON.stringify( script ) );
+                    stack.push( locking_script_hex );
+                    return unlockingScriptIsValid( stack, tx );
+                }
+            }
             //end of spacechain functions
+            //pegzone functions
+
+            //end of pegzone functions
         </script>
         <script>
             var { getSharedSecret, schnorr, utils } = nobleSecp256k1;
@@ -2225,7 +2473,7 @@
                 </div>
                 <div class="payment_div_container">
                     <p>
-                        Please pay the following invoice. Your payment will anchor the first block of your sidechain directly into bitcoin's blockchain.
+                        Please pay the following address. Your payment will anchor the first block of your sidechain directly into bitcoin's blockchain.
                     </p>
                     <div class="payment_div">
                         <a class="launch_payment_link" target="_blank"><div class="launch_payment_qr_code"></div></a>
@@ -2252,8 +2500,8 @@
                     </p>
                     <div class="launchpad">
                         <button class="view_your_blockchain">View blockchain</button>
-                        <!-- <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
-                        <button class="manage_your_wallet">Manage your wallet (and invite more users)</button>
+                        <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
+                        <!-- <button class="manage_your_wallet">Manage your wallet (and invite more users)</button>
                         <button class="mine_spaceblocks">Mine spaceblocks (and invite more miners)</button> -->
                         <button class="mine_spaceblocks">Mining Center</button>
                     </div>
@@ -2295,7 +2543,7 @@
             </p>
             <div class="new_block_payment_div_container">
                 <p>
-                    Please pay the following invoice. Your payment will anchor the first block of your sidechain directly into bitcoin's blockchain.
+                    Please pay the following address. Your payment will anchor the next block of your sidechain directly into bitcoin's blockchain.
                 </p>
                 <div class="new_block_payment_div">
                     <a class="new_block_payment_link" target="_blank"><div class="new_block_payment_qr_code"></div></a>
@@ -2306,6 +2554,44 @@
                 </div>
                 <p>
                     Send <span class="new_block_payment_amount"></span> sats to this address: <span class="new_block_payment_address"></span>
+                </p>
+            </div>
+        </div>
+        <div class="pegzone">
+            <h1>Peg zone</h1>
+            <h2>Orderbook</h2>
+            <p>
+                Buy and sell spacecoins
+            </p>
+            <div class="orderbook">
+            </div>
+            <button class="make_offer">Make an offer</button> 
+        </div>
+        <div class="spacecoin_offer">
+            <h1>Spacecoin offer</h1>
+            <div class="offer_details"></div>
+            <p>
+                How many spacecoins do you want to buy from this seller?
+            </p>
+            <p><input class="spacecoins_to_buy" type="number" step="1" min="546" value="546"></p>
+            <p>
+                Paste a spacechain address
+            </p>
+            <p><input class="post_burn_spacechain_address"></p>
+            <button class="accept_offer">Accept this offer</button>
+            <div class="burn_payment_div_container">
+                <p>
+                    Please pay the following address.
+                </p>
+                <div class="burn_payment_div">
+                    <a class="burn_payment_link" target="_blank"><div class="burn_payment_qr_code"></div></a>
+                    <center class="burn_payment_caption_container">
+                        <input class="burn_payment_caption" disabled>
+                        <button class="burn_payment_copier" onclick='copyText( $( ".burn_payment_caption" ) );'>&#10063;</button>
+                    </center>
+                </div>
+                <p>
+                    Send <span class="burn_payment_amount"></span> sats to this address: <span class="burn_payment_address"></span>
                 </p>
             </div>
         </div>
@@ -2398,6 +2684,75 @@
             $$( '.view_network' ).forEach( function( item ) {
                 item.onclick = function() {view_network_home();}
             });
+            $( '.buy_and_sell_spacecoins' ).onclick = async function() {
+                $( '.launch_page' ).style.display = "none";
+                $( '.pegzone' ).style.display = "block";
+                var offer = document.createElement( "div" );
+                offer.style = "border: 1px solid black; padding: 10px; margin: 10px;";
+                offer.className = "sell_offer";
+                var pgraph = document.createElement( "p" );
+                pgraph.innerHTML = `Seller: <span class="buyer">The Void</span>`;
+                offer.append( pgraph );
+                var pgraph = document.createElement( "p" );
+                pgraph.innerHTML = `Amount: <span class="min">546</span> - <span class="max">100,000,000,000</span> sats`;
+                offer.append( pgraph );
+                var pgraph = document.createElement( "p" );
+                pgraph.innerHTML = `Fee type: <span class="orderbook_fee_type">Absolute</span>`;
+                offer.append( pgraph );
+                var pgraph = document.createElement( "p" );
+                pgraph.innerHTML = `Fee: <span class="orderbook_fee">loading...</span>`;
+                offer.append( pgraph );
+                var anchor = document.createElement( "a" );
+                anchor.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + `?offer=${$_GET[ "chain" ]}&offer_chain=${$_GET[ "chain" ]}`;
+                anchor.target = "_blank";
+                var button = document.createElement( "button" );
+                button.innerText = "View offer";
+                anchor.append( button );
+                offer.append( anchor );
+                $( '.orderbook' ).append( offer );
+                var feerate = await getMinFeeRate();
+                var fee = 300 * feerate;
+                $( '.orderbook_fee' ).innerText = String( fee ) + " sats";
+            }
+            $( '.accept_offer' ).onclick = async function() {
+                try {
+                    var spacechain_address = bech32ToHex( $( '.post_burn_spacechain_address' ).value );
+                } catch( e ) {
+                    alert( "something went wrong, please enter a valid spacechain address with no typos and then try again." );
+                    return;
+                }
+                var spacechain_anchor_txid = $_GET[ "offer_chain" ];
+                //prepare the op_return
+                var op_return = spacechain_address + spacechain_anchor_txid;
+                if ( !isHex( op_return ) || op_return.length != 104 ) {
+                    alert( "something went wrong, make sure you enter a valid spacechain address and please try again." );
+                    return;
+                }
+                var keypair = bitcoinjs.ECPair.makeRandom();
+                var privkey = keypair.privateKey.toString( "hex" );
+                var pubkey = keypair.publicKey.toString( "hex" );
+                var feerate = await getMinFeeRate();
+                var amount_to_burn_plus_fee = Number( $( '.spacecoins_to_buy' ).value ) + ( 300 * feerate );
+                var amount_to_burn = Number( $( '.spacecoins_to_buy' ).value );
+                var blockheight = await getBlockheight();
+                var timelock = blockheight + 2016;
+                var preimage = bitcoinjs.ECPair.makeRandom().privateKey.toString( "hex" );
+                var payment_hash = bitcoinjs.crypto.sha256( hexToBytes( preimage ) ).toString( "hex" );
+                var swap_address = getSwapAddress( pubkey, pubkey, payment_hash, timelock );
+                sessionStorage[ "utxo_data" ] = JSON.stringify( {"privkey":privkey,"pubkey":pubkey,"preimage":preimage,"pmthash":payment_hash,"timelock":timelock,"amount":amount_to_burn_plus_fee} );
+                $( '.burn_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
+                $( '.burn_payment_link' ).href = "bitcoin:" + swap_address;
+                $( '.burn_payment_caption' ).value = "bitcoin:" + swap_address;
+                $( '.burn_payment_amount' ).innerText = amount_to_burn_plus_fee;
+                $( '.burn_payment_address' ).innerText = swap_address;
+                $( '.burn_payment_div_container' ).style.display = "block";
+                var txid = await waitThenBurn( swap_address, amount_to_burn_plus_fee, preimage, privkey, pubkey, timelock, pubkey, op_return, amount_to_burn );
+                if ( !isHex( txid ) || txid.length != 64 ) {
+                    alert( "Oh no, something went wrong! Please try again." );
+                    return;
+                }
+                alert( "success! Your spacecoins will be available in the spacechain address you designated as soon as this transaction is confirmed: " + txid );
+            }
         </script>
     </body>
 </html>
