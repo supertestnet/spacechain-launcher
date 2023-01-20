@@ -32,7 +32,8 @@
                 }
                 .launch_page, .genesis_block_finalized, .payment_div_container, .new_block_payment_div_container,
                 .prelaunchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions,
-                .buy_and_sell_spacecoins, .pegzone, .spacecoin_offer, .burn_payment_div_container {
+                .buy_and_sell_spacecoins, .pegzone, .spacecoin_offer, .burn_payment_div_container,
+                .hidden_mining_info {
                     display: none;
                 }
                 .genesis_block_finalized .genesis_block_title {
@@ -131,8 +132,6 @@
             if ( $_GET[ "mining" ] == "true" ) {
                 sessionStorage[ "mining" ] = true;
             }
-            //removed the following line when I revised the sync procedure
-            //sessionStorage[ "headers_synced" ] = "";
             sessionStorage[ "block_after_theft" ] = "";
             sessionStorage[ "block_being_sought" ] = "";
             sessionStorage[ "userdata" ] = "[]";
@@ -193,17 +192,9 @@
                 $( '.buy_and_sell_spacecoins' ).style.display = "inline";
             }
             var chain_til_theft_or_blockheight = [];
-            async function syncHeaders() {
-                //removed the following lines when I revised the sync procedure
-                //await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
-                //await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
-                //sessionStorage[ "headers_synced" ] = true;
-            }
             if ( $_GET[ "chain" ] ) {
                 //the next line syncs headers until the first theft, if any
                 chain_til_theft_or_blockheight.push( $_GET[ "chain" ] );
-                //removed the following line when I revised the sync procedure
-                //syncHeaders();
                 window.onload = view_network_home;
             }
             if ( $_GET[ "offer" ] ) {
@@ -845,7 +836,6 @@
                     return note_i_seek;
                 }
                 var returnable = await getTimeoutData();
-                console.log( "returnable (should be whole block, not just a hash):", returnable );
                 return returnable;
             }
 
@@ -2095,14 +2085,6 @@
                     console.log( "not mining" );
                 }
                 if ( !$_GET[ "chain" ] ) return;
-                //removed the following lines when I revised the sync procedure
-                //wait til sessionStorage[ "headers_synced" ] is true
-                //console.log( "waiting til headers are synced..." );
-                //await getNote( "headers_synced" );
-                if ( $_GET[ "testing_no_sync" ] ) return;
-                //removed the following line when I revised the sync procedure
-                //console.log( "syncing chain!" );
-                syncChain();
             }
 
             async function handleMessage( message ) {
@@ -2206,7 +2188,7 @@
                     }
                     return;
                 }
-                console.log( "message:", message, "sent by:", sender );
+                //console.log( "message:", message, "sent by:", sender );
                 if ( !isValidJson( message ) ) return;
                 message = JSON.parse( message );
                 /*
@@ -2359,7 +2341,6 @@
                 ) {
                     //remove the pending block request
                     pending_block_requests.splice( pending_block_requests.indexOf( message[ "request_id" ] ), 1 );
-                    console.log( "the message was removed" );
                     //you got a block, which either means there is a fork, a new block, or a troll
                     //check if it's a valid spaceblock candidate to see if it's a troll
                     var claimed_block = message[ "block" ];
@@ -2407,7 +2388,6 @@
                             var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                             var blocknum = getSpacechainHashes().length;
                             var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                            console.log( coinbase );
                             if ( coinbase > -1 ) {
                                 var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
                                 if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
@@ -2434,7 +2414,6 @@
                             var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                             var blocknum = getSpacechainHashes().length;
                             var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                            console.log( coinbase );
                             if ( coinbase > -1 ) {
                                 var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
                                 if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
@@ -2482,6 +2461,7 @@
                 $( '.miner_registration' ).innerHTML = "";
                 $( '.miner_registration' ).append( button );
                 $( '.mine_new_block' ).style.display = "inline";
+                $( '.hidden_mining_info' ).style.display = "block";
             }
 
             function stopMining() {
@@ -2494,6 +2474,7 @@
                 $( '.miner_registration' ).innerHTML = "";
                 $( '.miner_registration' ).append( button );
                 $( '.mine_new_block' ).style.display = "none";
+                $( '.hidden_mining_info' ).style.display = "none";
             }
 
             async function getSignedEvent(event, privateKey) {
@@ -2656,7 +2637,7 @@
             }
             function mineOnLoop() {
                 if ( !sessionStorage[ "mining" ] ) return;
-                announceIStartedMining();
+                announceIStartedMining( $_GET[ "chain" ] );
                 //announce yourself every 12 hours
                 setTimeout( function() {mineOnLoop();}, 60000 * 10 );
             }
@@ -2726,16 +2707,7 @@
                 console.log( "almost done syncing headers..." );
                 await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
                 console.log( "syncing chain!" );
-                if ( myminers.length ) {
-                    requestBlock( getSpacechainHashes().length + 1 );
-                    setTimeout( function() {
-                        console.log( "waiting 60 seconds to request another block" );
-                        syncChain();
-                    }, 60000 );
-                } else {
-                    console.log( "there are no miners right now, trying again in 5 seconds" );
-                    setTimeout( function() {syncChain();}, 5000 );
-                }
+                if ( myminers.length ) requestBlock( getSpacechainHashes().length + 1 );
                 // var spaceblock = [];
                 // spaceblock.push( "0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b" );
                 // spaceblock.push( '{"spacechain_name":"Test chain","spacechain_msg":"test message"}' );
@@ -2753,7 +2725,7 @@
                 // spaceblock3_2.push( "This is a fork block, I am experimenting with forks" );
                 // spacechain.push([ "6bb933c3ef46cda86568322b21bd85db413e7692214ee0f5fc984e1e31c93944", JSON.stringify( spaceblock3_2 ), "e8418bd995112bae9c2b2dc36be86d6d9fc3082b549e0881afc8fabe2024499a" ]);
             }
-            function checkHeartbeat() {
+            function checkHeartbeat( num ) {
                 if ( socket && socket.readyState == 3 ) {
                     socket.removeEventListener( 'open', openConnection );
                     socket.removeEventListener( 'message', handleMessage );
@@ -2761,9 +2733,19 @@
                     socket.addEventListener( 'message', handleMessage );
                     socket.addEventListener( 'open', openConnection );
                 }
-                setTimeout( function() {checkHeartbeat();}, 500 );
+                //check for new blocks on startup and every 60 seconds thereafter
+                if ( !num ) syncChain();
+                if ( num == 120 ) {
+                    num = 0;
+                } else {
+                    num = num + 1;
+                }
+                //if there are no miners, try to resync every 5 seconds so that if they return you start syncing quickly
+                if ( $_GET[ "testing_no_sync" ] ) return;
+                if ( !myminers.length && num % 10 == 0 ) setTimeout( function() {syncChain();}, 5000 );
+                setTimeout( function() {checkHeartbeat( num );}, 500 );
             }
-            checkHeartbeat();
+            checkHeartbeat( 0 );
         </script>
     </head>
     <body>
@@ -2878,25 +2860,27 @@
             <h1>Welcome to the mining center</h1>
             <p><button class="view_network">Back</button></p>
             <div class="miner_registration"></div>
-            <p class="space_blocksheight">Blockheight: <span class="space_blockheight_count">0</span></p>
-            <p>
-                Create next block
-            </p>
-            <p>
-                <h2>Transactions in block so far</h2>
-            </p>
-            <div class="messages_so_far">
-                <p class="none_so_far">
-                    None so far
+            <div class="hidden_mining_info">
+                <p class="space_blocksheight">Blockheight: <span class="space_blockheight_count">0</span></p>
+                <p>
+                    Create next block
+                </p>
+                <p>
+                    <h2>Transactions in block so far</h2>
+                </p>
+                <div class="messages_so_far">
+                    <p class="none_so_far">
+                        None so far
+                    </p>
+                </div>
+                <textarea class="new_block_message_input" name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
+                <p>
+                    <button class="add_msg_to_block">Add transaction to block</button>
+                </p>
+                <p>
+                    <button class="mine_new_block">Mine new block</button>
                 </p>
             </div>
-            <textarea class="new_block_message_input" name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
-            <p>
-                <button class="add_msg_to_block">Add transaction to block</button>
-            </p>
-            <p>
-                <button class="mine_new_block">Mine new block</button>
-            </p>
             <div class="new_block_payment_div_container">
                 <p>
                     Please pay the following address. Your payment will anchor the next block of your sidechain directly into bitcoin's blockchain.
@@ -3015,6 +2999,7 @@
                     $( '.miner_registration' ).innerHTML = "";
                     $( '.miner_registration' ).append( button );
                     $( '.mine_new_block' ).style.display = "inline";
+                    $( '.hidden_mining_info' ).style.display = "block";
                 }
             }
             $( '.add_msg_to_block' ).onclick = async function() {
