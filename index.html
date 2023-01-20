@@ -830,7 +830,9 @@
                             }
                             setTimeout( async function() {
                                 var msg = await isNoteSetYet( block_i_seek );
-                                console.log( "a miner gave it to me!" );
+                                if ( msg ) {
+                                    console.log( "a miner gave it to me!" );
+                                }
                                 resolve( msg );
                             }, 100 );
                         } else {
@@ -976,8 +978,7 @@
                 //merkle-ize the spaceblock
                 var unresolvedPromises = spaceblock.map( bitcoinjs.crypto.sha256 );
                 var leaves = await Promise.all( unresolvedPromises );
-                var tree = new MerkleTree( leaves, bitcoinjs.crypto.sha256 );
-                var root = tree.getRoot().toString( "hex" );
+                var tree = new MerkleTree( leaves );
                 var merkleroot = tree.getRoot().toString( "hex" );
                 //get the 32 byte hash of the spaceblock being built upon
                 var parent = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -1223,8 +1224,7 @@
                 //merkle-ize the spaceblock
                 var unresolvedPromises = spaceblock.map( bitcoinjs.crypto.sha256 );
                 var leaves = await Promise.all( unresolvedPromises );
-                var tree = new MerkleTree( leaves, bitcoinjs.crypto.sha256 );
-                var root = tree.getRoot().toString( "hex" );
+                var tree = new MerkleTree( leaves );
                 var merkleroot = tree.getRoot().toString( "hex" );
                 //make the block header
                 var header = parent + merkleroot;
@@ -1252,8 +1252,7 @@
                 //recreate the spaceblock including its merkle root and check if it matches the one passed in
                 var unresolvedPromises = spaceblock.map( bitcoinjs.crypto.sha256 );
                 var leaves = await Promise.all( unresolvedPromises );
-                var tree = new MerkleTree( leaves, bitcoinjs.crypto.sha256 );
-                var root = tree.getRoot().toString( "hex" );
+                var tree = new MerkleTree( leaves );
                 var merkleroot = tree.getRoot().toString( "hex" );
                 //get the 32 byte hash of the spaceblock being built upon
                 var parent = block[ 0 ].substring( 0, 64 );
@@ -1364,13 +1363,11 @@
                 //console.log( "blockhash:", blockhash );
                 //console.log( "anchor_txid:", anchor_txid );
                 if ( !anchor_txid ) return "bad chain";
-                console.log( 0 );
                 chain.splice( 0, 0, anchor_txid );
                 sessionStorage[ "block_being_sought" ] = "";
                 var getting_my_block = await requestBlock2( 5, blockhash );
                 //console.log( "run this:", `var block = await requestBlock2( 5, "${blockhash}" );` );
                 if ( getting_my_block == "time_is_up" ) {console.log( "here is the block:", block );return "bad chain";}
-                console.log( 1 );
                 var parent_of_block = JSON.parse( getting_my_block )[ 0 ].substring( 0, 64 );
                 if ( parent_of_block == "0000000000000000000000000000000000000000000000000000000000000000" ) return chain;
                 return traceHistory( candidate_anchors, parent_of_block, chain );
@@ -1432,6 +1429,16 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
+                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                             return;
                         }
                         return true;
@@ -1479,6 +1486,16 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
+                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                             return;
                         }
                         return true;
@@ -1512,6 +1529,16 @@
                         spacechain.every( function( block, index ) {
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                                 spacechain.length = index;
+                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                                 return;
                             }
                             return true;
@@ -1530,6 +1557,16 @@
                         spacechain.every( function( block, index ) {
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                                 spacechain.length = index;
+                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                                 return;
                             }
                             return true;
@@ -1552,6 +1589,16 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
+                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                             return;
                         }
                         return true;
@@ -1570,6 +1617,16 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
+                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                             return;
                         }
                         return true;
@@ -1597,6 +1654,16 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
+                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                             return;
                         }
                         return true;
@@ -1615,6 +1682,16 @@
                 spacechain.every( function( block, index ) {
                     if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                         spacechain.length = index;
+                        if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                        var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                        var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                        utxo_set.forEach( function( utxo, num ) {
+                            var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                            if ( num_it_starts_with > index ) {
+                                working_utxo_set.slice( num, 1 );
+                            }
+                        });
+                        localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
                         return;
                     }
                     return true;
@@ -1688,7 +1765,7 @@
                         var all_numbers = true;
                         input_list.every( function( item ) {
                             if ( typeof( item ) != "number" ) {all_numbers = false; return;}
-                       return true;
+                            return true;
                         });
                         if ( !all_numbers ) return;
                         var highest_num = 0;
@@ -1706,7 +1783,7 @@
                         var all_numbers = true;
                         output_list.every( function( item ) {
                             if ( typeof( item ) != "number" ) {all_numbers = false; return;}
-                       return true;
+                            return true;
                         });
                         if ( !all_numbers ) return;
                         highest_num = 0;
@@ -1734,6 +1811,252 @@
                     stack.push( locking_script_hex );
                     return unlockingScriptIsValid( stack, tx );
                 }
+            }
+            function getSpacechainTxByTxid( txid ) {
+                if ( txid.split( ":" ).length != 2 ) return;
+                if ( isNaN( txid.split( ":" )[ 0 ] ) || isNaN( txid.split( ":" )[ 1 ] ) ) return;
+                var block = Number( txid.split( ":" )[ 0 ] - 1 );
+                var txnum = Number( txid.split( ":" )[ 1 ] );
+                if ( sessionStorage[ "mining" ] ) {
+                    //if you are mining, search for the tx in the current in-progress block
+                    if ( getSpacechainHashes().length + 1 == block + 1 ) {
+                        var userdata = JSON.parse( sessionStorage[ "userdata" ] );
+                        if ( userdata.length < txnum ) return;
+                        return userdata[ txnum ];
+                    }
+                } else {
+                    if ( getSpacechainHashes().length < block + 1 ) return;
+                }
+                var tx_list = JSON.parse( spacechain[ block ][ 1 ] );
+                if ( tx_list.length - 1 < txnum ) return;
+                var tx = JSON.parse( spacechain[ block ][ 1 ] )[ txnum + 1 ];
+                return tx;
+            }
+            function thisTransactionFromMyUtxoSetOrItsParentsSpentBurnUtxo( tx_to_investigate, txid_of_burn_utxo ) {
+                var it_spent_it = false;
+                if ( !Object.keys( tx_to_investigate ).includes( "inputs" ) ) return false;
+                tx_to_investigate[ "inputs" ].every( function( input ) {
+                    if ( Object.keys( input ).length == 4 && input[ "burntx" ] == txid_of_burn_utxo ) {it_spent_it = true;return;}
+                    if ( Object.keys( input ).length == 5 && thisTransactionFromMyUtxoSetOrItsParentsSpentBurnUtxo( JSON.parse( getSpacechainTxByTxid( input[ "blocknum" ] + ":" + input[ "tx_index" ] ) ), txid_of_burn_utxo ) ) {it_spent_it = true;return;}
+                    return true;
+                });
+                return it_spent_it;
+            }
+            async function isCoinbaseCandidate( tx, wallet_identifier ) {
+                var transaction = tx;
+                if ( !isValidJson( transaction ) ) return;
+                transaction = JSON.parse( transaction );
+                if ( Object.keys( transaction ).length != 4 ) return;
+                if ( !Object.keys( transaction ).includes( "wallet" ) ) return;
+                if ( !Object.keys( transaction ).includes( "outputs" ) ) return;
+                if ( !Object.keys( transaction ).includes( "timelock" ) ) return;
+                if ( !Object.keys( transaction ).includes( "inputs" ) ) return;
+                if ( transaction[ "wallet" ] != wallet_identifier ) return;
+                if ( !Array.isArray( transaction[ "outputs" ] ) ) return;
+                if ( !Array.isArray( transaction[ "inputs" ] ) ) return;
+                var all_outputs_are_valid = true;
+                transaction[ "outputs" ].every( function( output ) {
+                    if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;return;}
+                    if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;return;}
+                    if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;return;}
+                    if ( typeof( output[ "value" ] ) != "number" ) {all_outputs_are_valid = false;return;}
+                    return true;
+                });
+                if ( !all_outputs_are_valid ) return;
+                if ( !transaction[ "inputs" ].length ) return true;
+            }
+            async function transactionIsValidWalletTx( tx, i_am_mining_this_tx, wallet_identifier, blocknum, txnum, do_not_add_to_utxo_set ) {
+                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                    var utxo_set = [];
+                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                } else {
+                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                }
+                var transaction = tx;
+                if ( !isValidJson( transaction ) ) return;
+                transaction = JSON.parse( transaction );
+                if ( Object.keys( transaction ).length != 4 ) return;
+                if ( !Object.keys( transaction ).includes( "wallet" ) ) return;
+                if ( !Object.keys( transaction ).includes( "outputs" ) ) return;
+                if ( !Object.keys( transaction ).includes( "timelock" ) ) return;
+                if ( !Object.keys( transaction ).includes( "inputs" ) ) return;
+                if ( transaction[ "wallet" ] != wallet_identifier ) return;
+                if ( !Array.isArray( transaction[ "outputs" ] ) ) return;
+                if ( !Array.isArray( transaction[ "inputs" ] ) ) return;
+                var all_outputs_are_valid = true;
+                transaction[ "outputs" ].every( function( output ) {
+                    if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;return;}
+                    if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;return;}
+                    if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;return;}
+                    if ( typeof( output[ "value" ] ) != "number" ) {all_outputs_are_valid = false;return;}
+                    return true;
+                });
+                if ( !all_outputs_are_valid ) return;
+                var all_inputs_are_valid = true;
+                var i; for ( i=0; i<transaction[ "inputs" ].length; i++ ) {
+                    var input = transaction[ "inputs" ][ i ];
+                    if ( Object.keys( input ).length != 4 && input.length != 5 ) {all_inputs_are_valid = false;break;}
+                    if ( !Object.keys( input ).includes( "redeem_script" ) ) {all_inputs_are_valid = false;break;}
+                    if ( !Object.keys( input ).includes( "value" ) ) {all_inputs_are_valid = false;break;}
+                    if ( !Object.keys( input ).includes( "output_index" ) ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 4 && !Object.keys( input ).includes( "burntx" ) ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 5 && !Object.keys( input ).includes( "blocknum" ) ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 5 && !Object.keys( input ).includes( "tx_index" ) ) {all_inputs_are_valid = false;break;}
+                    if ( typeof( input[ "value" ] ) != "number" ) {all_inputs_are_valid = false;break;}
+                    if ( typeof( input[ "output_index" ] ) != "number" ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 5 && typeof( input[ "blocknum" ] ) != "number" ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 5 && typeof( input[ "tx_index" ] ) != "number" ) {all_inputs_are_valid = false;break;}
+                    if ( !i_am_mining_this_tx && input[ "blocknum" ] <= getSpacechainHashes().length ) {all_inputs_are_valid = false;break;}
+                    if ( i_am_mining_this_tx && input[ "blocknum" ] <= getSpacechainHashes().length + 1 ) {all_inputs_are_valid = false;break;}
+                    if ( input.length == 4 && ( !isHex( input[ "burntx" ] ) || input[ "burntx" ].length != 64 ) ) {all_inputs_are_valid = false;break;}
+                    try {
+                        var redeem_script = atob( input[ "redeem_script" ] );
+                    } catch( e ) {
+                        all_inputs_are_valid = false;
+                        break;
+                    }
+                    if ( !isValidJson( redeem_script ) ) {all_inputs_are_valid = false;break;}
+                    redeem_script = JSON.parse( redeem_script );
+                    if ( !redeem_script.length ) {all_inputs_are_valid = false;break;}
+                    var last_witness_element = redeem_script[ redeem_script.length - 1 ];
+                    if ( !isHex( last_witness_element ) ) {all_inputs_are_valid = false;break;}
+                    var hash_of_last_witness_element = bitcoinjs.crypto.hash160( Buffer.from( last_witness_element, "hex" ) ).toString( "hex" );
+                    if ( Object.keys( input ).length == 4 ) {
+                        var address_prep = await getData( `https://mempool.space/testnet/api/tx/${input[ "burntx" ]}` );
+                        address_prep = JSON.parse( address_prep );
+                        if ( address_prep[ "vout" ][ input[ "output_index" ] ][ "scriptpubkey_type" ] != "op_return" ) {all_inputs_are_valid = false;break;}
+                        if ( address_prep[ "vout" ][ input[ "output_index" ] ][ "scriptpubkey" ] != "6a34" + hash_of_last_witness_element + $_GET[ "chain" ] ) {all_inputs_are_valid = false;break;}
+                        if ( address_prep[ "vout" ][ input[ "output_index" ] ][ "value" ] != input[ "value" ] ) {all_inputs_are_valid = false;break;}
+                        var one_of_my_current_utxos_spent_it = false;
+                        utxo_set.every( function( utxo ) {
+                            var txid_to_check = utxo.split( ":" )[ 0 ] + ":" + utxo.split( ":" )[ 1 ];
+                            var tx = getSpacechainTxByTxid( txid_to_check );
+                            tx = JSON.parse( tx );
+                            if ( utxo.startsWith( String( blocknum ) + ":" + String( txnum ) ) ) return true;
+                            if ( thisTransactionFromMyUtxoSetOrItsParentsSpentBurnUtxo( tx, input[ "burntx" ] ) ) {one_of_my_current_utxos_spent_it = true;return;}
+                            return true;
+                        });
+                        if ( one_of_my_current_utxos_spent_it ) {all_inputs_are_valid = false;break;}
+                    } else {
+                        var txid = input[ "blocknum" ] + ":" + input[ "tx_index" ];
+                        var parent = getSpacechainTxByTxid( txid );
+                        if ( !parent ) {all_inputs_are_valid = false;break;}
+                        if ( !isValidJson( parent ) ) {all_inputs_are_valid = false;break;}
+                        if ( !Object.keys( parent ).includes( "outputs" ) ) {all_inputs_are_valid = false;break;}
+                        if ( !Array.isArray( parent[ "outputs" ] ) ) {all_inputs_are_valid = false;break;}
+                        if ( parent[ "outputs" ].length < input[ "output_index" ] ) {all_inputs_are_valid = false;break;}
+                        var output = parent[ "outputs" ][ input[ "output_index" ] ];
+                        if ( !isValidJson( output ) ) {all_inputs_are_valid = false;break;}
+                        if ( output.length != 2 ) {all_inputs_are_valid = false;break;}
+                        if ( !Object.keys( output ).includes( "scripthash" ) ) {all_inputs_are_valid = false;break;}
+                        if ( !Object.keys( output ).includes( "value" ) ) {all_inputs_are_valid = false;break;}
+                        if ( typeof( output[ "value" ] ) != "number" ) {all_inputs_are_valid = false;break;}
+                        if ( output[ "scripthash" ] != hash_of_last_witness_element ) {all_inputs_are_valid = false;break;}
+                        if ( output[ "value" ] != input[ "value" ] ) {all_inputs_are_valid = false;break;}
+                        if ( !utxo_set.includes( txid + ":" + input[ "output_index" ] ) ) {all_inputs_are_valid = false;break;}
+                    }
+                    if ( !unlockingScriptIsValid( input[ "redeem_script" ], tx ) ) {all_inputs_are_valid = false;break;}
+                }
+                if ( !all_inputs_are_valid ) return;
+                var sum_of_all_outputs = 0;
+                transaction[ "outputs" ].forEach( function( output ) {
+                    sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                });
+                var sum_of_all_inputs = 0;
+                transaction[ "inputs" ].forEach( function( input ) {
+                    sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                });
+                if ( sum_of_all_outputs > sum_of_all_inputs ) return;
+                if ( do_not_add_to_utxo_set ) return true;
+                transaction[ "outputs" ].forEach( function( output, index ) {
+                    if ( !isHex( output[ "scripthash" ] ) || output[ "scripthash" ].length != 40 ) return;
+                    if ( !utxo_set.includes( String( blocknum ) + ":" + String( txnum ) + ":" + String( index ) ) ) {
+                        utxo_set.push( String( blocknum ) + ":" + String( txnum ) + ":" + String( index ) );
+                    }
+                });
+                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                //remove spent txos from the utxo set
+                transaction[ "inputs" ].forEach( function( input, index ) {
+                    if ( Object.keys( input ).length != 5 ) return;
+                    if ( utxo_set.includes( String( input[ "blocknum" ] ) + ":" + String( input[ "tx_index" ] ) + ":" + String( input[ "output_index" ] ) ) ) {
+                        utxo_set.splice( utxo_set.indexOf( String( input[ "blocknum" ] ) + ":" + String( input[ "tx_index" ] ) + ":" + String( input[ "output_index" ] ) ), 1 );
+                        localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                    }
+                });
+                return true;
+            }
+            async function getFeesPaidByBlock( block, wallet_identifier, blocknum ) {
+                var fees = 0;
+                var i; for ( i=0; i<block.length; i++ ) {
+                    var index = i;
+                    var transaction = block[ i ];
+                    if ( index ) {
+                        var tx_is_good = await transactionIsValidWalletTx( transaction, false, wallet_identifier, blocknum, index - 1, true );
+                        if ( tx_is_good ) {
+                            transaction = JSON.parse( transaction );
+                            var sum_of_all_outputs = 0;
+                            transaction[ "outputs" ].forEach( function( output ) {
+                                sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                            });
+                            var sum_of_all_inputs = 0;
+                            transaction[ "inputs" ].forEach( function( input ) {
+                                sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                            });
+                            var fee = sum_of_all_inputs - sum_of_all_outputs;
+                            fees = fees + fee;
+                        }
+                    }
+                }
+                return fees;
+            }
+            async function getCoinbaseFromBlock( block, wallet_identifier, blocknum ) {
+                var fee = await getFeesPaidByBlock( block, wallet_identifier, blocknum );
+                var cb_index = -1;
+                block.every( function( transaction, index ) {
+                    if ( !index ) return true;
+                    if ( !isValidJson( transaction ) ) return true;
+                    transaction = JSON.parse( transaction );
+                    if ( Object.keys( transaction ).length != 4 ) return true;
+                    if ( !Object.keys( transaction ).includes( "wallet" ) ) return true;
+                    if ( !Object.keys( transaction ).includes( "outputs" ) ) return true;
+                    if ( !Object.keys( transaction ).includes( "timelock" ) ) return true;
+                    if ( !Object.keys( transaction ).includes( "inputs" ) ) return true;
+                    if ( transaction[ "wallet" ] != wallet_identifier ) return true;
+                    if ( !Array.isArray( transaction[ "outputs" ] ) ) return true;
+                    if ( !Array.isArray( transaction[ "inputs" ] ) ) return true;
+                    var all_outputs_are_valid = true;
+                    transaction[ "outputs" ].every( function( output ) {
+                        if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;return;}
+                        if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;return;}
+                        if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;return;}
+                        if ( typeof( output[ "value" ] ) != "number" ) {all_outputs_are_valid = false;return;}
+                        return true;
+                    });
+                    if ( !all_outputs_are_valid ) return true;
+                    if ( transaction[ "inputs" ].length ) return true;
+                    if ( transaction[ "outputs" ][ 0 ][ "value" ] == fee ) {cb_index = index - 1;return;}
+                });
+                return cb_index;
+            }
+            function getLockingScriptHexFromPrivkey( privkey ) {
+                var keys = bitcoinjs.ECPair.fromPrivateKey( Buffer.from( privkey, "hex" ) );
+                var pubkey = keys.publicKey.toString( "hex" );
+                var keyhash = bitcoinjs.crypto.hash160( keys.publicKey ).toString( "hex" );
+                var locking_script_array = [
+                    "OP_DUP",
+                    "OP_HASH160",
+                    keyhash,
+                    "OP_EQUALVERIFY",
+                    "OP_CHECKSIG"
+                ];
+                var locking_script_hex = textToHex( JSON.stringify( locking_script_array ) );
+                return locking_script_hex;
+            }
+
+            function getSpacechainAddressFromPrivkey( privkey ) {
+                var locking_script_hex = getLockingScriptHexFromPrivkey( privkey );
+                var address = hexToBech32( "sc", bitcoinjs.crypto.hash160( hexToBytes( locking_script_hex ) ).toString( "hex" ) );
+                return address;
             }
             //end of spacechain functions
             //pegzone functions
@@ -2066,7 +2389,6 @@
                     //check if the block was anchored into bitcoin
                     var candidate_anchors = await getAllTxsInvolvingAddress( "tb1qhutjenkpvjltlpuscqpnpj8gpdxh2s6xdw63quzpzhvqjs90grtssaqrd0" );
                     var claimed_anchor_tx = findAnchorAmongCandidates( candidate_anchors, block_hash );
-                    console.log( 0, `claimed_anchor_tx_for ${block_hash}:`, claimed_anchor_tx );
                     //if the block is not anchored, ignore it
                     if ( !claimed_anchor_tx ) return;
                     //check if the block's anchor transaction used an anchor_utxo from your spacechain
@@ -2077,9 +2399,26 @@
                         !getSpacechainHashes().length &&
                         claimed_block[ 0 ].substring( 0, 64 ) == "0000000000000000000000000000000000000000000000000000000000000000"
                     ) {
-                        //it is a new block so add it to your own chain
+                        //it is a new block so add it to your own chain and update your utxo set
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                        claimed_block.forEach( async function( tx, index ) {
+                            if ( !index ) return;
+                            var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                            var blocknum = getSpacechainHashes().length;
+                            var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
+                            console.log( coinbase );
+                            if ( coinbase > -1 ) {
+                                var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
+                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                if ( !utxo_set.includes( txid_plus_output_number ) ) {
+                                    utxo_set.push( txid_plus_output_number );
+                                }
+                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( utxo_set );
+                            }
+                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
+                        });
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
                     } else if (
@@ -2090,6 +2429,23 @@
                         //it is a new block so add it to your own chain
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
+                        claimed_block.forEach( async function( tx, index ) {
+                            if ( !index ) return;
+                            var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                            var blocknum = getSpacechainHashes().length;
+                            var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
+                            console.log( coinbase );
+                            if ( coinbase > -1 ) {
+                                var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
+                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
+                                if ( !utxo_set.includes( txid_plus_output_number ) ) {
+                                    utxo_set.push( txid_plus_output_number );
+                                }
+                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( utxo_set );
+                            }
+                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
+                        });
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
                     } else if (
@@ -2447,11 +2803,11 @@
                 <p class="step_1_title">
                     Step 1. Give your spacechain a name
                 </p>
-                <input name="name_your_spacechain" placeholder="Best spacechain ever">
+                <input class="name_your_spacechain" name="name_your_spacechain" placeholder="Best spacechain ever">
                 <p>
                     And a genesis message
                 </p>
-                <textarea name="genesis_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
+                <textarea class="genesis_message_input" name="genesis_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
                 <p>
                     <button class="genesis_block_submit">Submit</button>
                 </p>
@@ -2534,7 +2890,7 @@
                     None so far
                 </p>
             </div>
-            <textarea name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
+            <textarea class="new_block_message_input" name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
             <p>
                 <button class="add_msg_to_block">Add transaction to block</button>
             </p>
@@ -2606,13 +2962,13 @@
                 window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6";
             }
             $( '.genesis_block_submit' ).onclick = async function() {
-                var conf = confirm( `Are you sure you want to use this data? \n\nName: ${$( 'input[ name="name_your_spacechain" ]' ).value}\nMessage: ${$( 'textarea[ name="genesis_message_input" ]' ).value}` );
+                var conf = confirm( `Are you sure you want to use this data? \n\nName: ${$( '.name_your_spacechain' ).value}\nMessage: ${$( '.genesis_message_input' ).value}` );
                 if ( !conf ) return;
                 $( '.launch_step_1' ).style.display = "none";
                 $( '.genesis_block_finalized' ).style.display = "block";
                 $( '.payment_div_container' ).style.display = "block";
-                $( '.genesis_block_finalized .genesis_block input' ).value = $( 'input[ name="name_your_spacechain" ]' ).value;
-                $( '.genesis_block_finalized .genesis_block textarea' ).value = $( 'textarea[ name="genesis_message_input" ]' ).value;
+                $( '.genesis_block_finalized .genesis_block input' ).value = $( '.name_your_spacechain' ).value;
+                $( '.genesis_block_finalized .genesis_block textarea' ).value = $( '.genesis_message_input' ).value;
             }
             $( '.view_your_blockchain' ).onclick = async function() {
                 if ( !spacechain.length ) {
@@ -2630,10 +2986,21 @@
                 showBlockInExplorer( block, index );
             }
             $( '.mine_spaceblocks' ).onclick = async function() {
+                sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = "[]";
+                if ( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] ) {
+                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] );
+                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] );
+                    utxo_set.forEach( function( utxo, index ) {
+                        if ( utxo.startsWith( String( getSpacechainHashes().length  + 1 ) ) ) {
+                            working_utxo_set.splice( index, 1 );
+                        }
+                    });
+                    localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] = JSON.stringify( working_utxo_set );
+                }
                 $( '.launch_page' ).style.display = "none";
                 $( '.mining_center' ).style.display = "block";
                 $( '.space_blockheight_count' ).innerText = String( getSpacechainHashes().length );
-                $( 'textarea[ name="new_block_message_input"' ).value = "";
+                $( '.new_block_message_input' ).value = "";
                 if ( !sessionStorage[ "mining" ] ) {
                     var button = document.createElement( "button" );
                     button.innerText = "Register as a miner of this spacechain";
@@ -2651,18 +3018,83 @@
                 }
             }
             $( '.add_msg_to_block' ).onclick = async function() {
-                $( '.none_so_far' ).style.display = "none";
-                var msg = $( 'textarea[ name="new_block_message_input"' ).value;
+                if ( $( '.none_so_far' ) ) $( '.none_so_far' ).style.display = "none";
+                var msg = $( '.new_block_message_input' ).value;
                 var userdata = JSON.parse( sessionStorage[ "userdata" ] );
+                //if the transaction pretends to be a coinbase, ignore it
+                if ( isValidJson( msg ) && Object.keys( JSON.parse( msg ) ).includes( "inputs" ) && Array.isArray( JSON.parse( msg )[ "inputs" ] ) && !JSON.parse( msg )[ "inputs" ].length ) return;
+                if ( sessionStorage[ "mining" ] ) {
+                    //without adding its transactions to the utxo set, check if the transaction is valid
+                    var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                    var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
+                    console.log( "tx is good?", tx_is_good );
+                    //ignore the transaction if it is no good
+                    if ( !tx_is_good ) {
+                    } else {
+                        var transaction = JSON.parse( msg );
+                        //ensure the value matches the difference between the inputs minus the outputs
+                        var sum_of_all_outputs = 0;
+                        transaction[ "outputs" ].forEach( function( output ) {
+                            sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                        });
+                        var sum_of_all_inputs = 0;
+                        transaction[ "inputs" ].forEach( function( input ) {
+                            sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                        });
+                        var my_fee = sum_of_all_inputs - sum_of_all_outputs;
+                        //if the transaction does not pay you, do not mine it
+                        if ( !my_fee ) return;
+                        //check if the current block has a coinbase transaction for this wallet that pays me
+                        if ( sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] == "[]" ) {
+                            //if it does not, add that first, then add this transaction
+                            var mycoinbase_prep = {}
+                            mycoinbase_prep[ "wallet" ] = wallet_identifier;
+                            mycoinbase_prep[ "inputs" ] = [];
+                            var outputs = [];
+                            outputs.push( {"scripthash":"abababababababababababababababababababab","value":sum_of_all_inputs - sum_of_all_outputs} );
+                            mycoinbase_prep[ "outputs" ] = outputs;
+                            mycoinbase_prep[ "timelock" ] = 1;
+                            var mycoinbase = JSON.stringify( mycoinbase_prep );
+                            sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = mycoinbase;
+                            userdata.push( mycoinbase );
+                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                            //add the new utxos to your utxo set
+                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                                var utxo_set = [];
+                            } else {
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                            }
+                            var index_of_coinbase = userdata.indexOf( mycoinbase );
+                            if ( !utxo_set.includes( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" ) ) {
+                                utxo_set.push( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" );
+                            }
+                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
+                        } else {
+                            //otherwise, modify the coinbase transaction, then add this transaction
+                            var oldcoinbase = sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ];
+                            newcoinbase = JSON.parse( oldcoinbase );
+                            oldcoinbase = JSON.parse( oldcoinbase );
+                            newcoinbase.outputs[ 0 ][ "value" ] = oldcoinbase.outputs[ 0 ][ "value" ] + my_fee;
+                            //find the old coinbase
+                            var index_of_old_coinbase = userdata.indexOf( JSON.stringify( oldcoinbase ) );
+                            //replace it with the new one
+                            userdata.splice( index_of_old_coinbase, 1, JSON.stringify( newcoinbase ) );
+                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                            //add the new utxos to your utxo set
+                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
+                        }
+                    }
+                }
                 userdata.push( msg );
                 sessionStorage[ "userdata" ] = JSON.stringify( userdata );
-                console.log( sessionStorage[ "userdata" ] );
-                $( 'textarea[ name="new_block_message_input"' ).value = "";
-                $( '.messages_so_far' ).innerHTML += `<p>${msg}</p>`
+                $( '.new_block_message_input' ).value = "";
+                $( '.messages_so_far' ).innerHTML = ``;
+                userdata.forEach( function( item ) {
+                    $( '.messages_so_far' ).innerHTML += `<p>${item}</p>`;
+                });
             }
             $( '.mine_new_block' ).onclick = async function() {
-                var prev_hash = getSpacechainHashes()[ getSpacechainHashes().length - 1 ];
-                console.log( "previous hash:", prev_hash );
                 //prepare data
                 var userdata = JSON.parse( sessionStorage[ "userdata" ] );
                 //generate the block
