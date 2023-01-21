@@ -101,14 +101,16 @@
                 }
 	    </style>
         <script src="https://bitcoincore.tech/apps/bitcoinjs-ui/lib/bitcoinjs-lib.js"></script>
-        <script src="https://bundle.run/buffer@6.0.3"></script>
-        <script>var Buffer = buffer.Buffer;</script>
         <script src="https://cdn.jsdelivr.net/npm/merkletreejs@latest/merkletree.js"></script>
-        <script src="https://bundle.run/noble-secp256k1@1.2.14"></script>
-        <script src="https://bundle.run/browserify-cipher@1.0.1"></script>
         <script src="https://supertestnet.github.io/bitcoin-chess/js/qrcode.js"></script>
+        <script src="https://bundle.run/browserify-cipher@1.0.1"></script>
+        <script src="https://bundle.run/noble-secp256k1@1.2.14"></script>
         <script src="https://bundle.run/varuint-bitcoin@1.1.2"></script>
+        <script src="https://bundle.run/buffer@6.0.3"></script>
         <script src="https://bundle.run/bech32@2.0.0"></script>
+        <script src="https://bundle.run/bip39@3.0.4"></script>
+        <script src="https://bundle.run/bip32@2.0.6"></script>
+        <script>var Buffer = buffer.Buffer;</script>
         <script src="js/bolt11.js"></script>
         <script>
             var $ = document.querySelector.bind( document );
@@ -135,6 +137,15 @@
             sessionStorage[ "block_after_theft" ] = "";
             sessionStorage[ "block_being_sought" ] = "";
             sessionStorage[ "userdata" ] = "[]";
+            if ( !localStorage[ "backup_words" ] ) {
+                localStorage[ "backup_words" ] = bip39.generateMnemonic();
+            }
+            if ( !localStorage[ "index-of-first-known-unused-receive-address" ] ) {
+                    localStorage[ "index-of-first-known-unused-receive-address" ] = 0;
+            }
+            if ( !localStorage[ "index-of-first-known-unused-change-address" ] ) {
+                    localStorage[ "index-of-first-known-unused-change-address" ] = 0;
+            }
             async function view_offer() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_step_1' ).style.display = "none";
@@ -692,6 +703,23 @@
             }
             function reverseHexString( s ) {
                 return s.match(/[a-fA-F0-9]{2}/g).reverse().join('');
+            }
+            function computeRawPrivkey( node ) {
+                return bitcoinjs.ECPair.fromPrivateKey( node.privateKey ).privateKey.toString( "hex" );
+            }
+            function getPrivkeyHexFromPath( backupwords, path, index ) {
+                //standard segwit path is m/84'/0'/0'/0 so “path” should be 84'/0'/0' and “index” 0
+                var seed = bip39.mnemonicToSeedSync( backupwords );
+                var node = bip32.fromSeed( seed );
+                var path = "m/" + path + "/" + index;
+                var root = node;
+                var child = root.derivePath( path );
+                return computeRawPrivkey( child );
+            }
+            function getAddressFromPath( backupwords, path, index ) {
+                var privkey = getPrivkeyHexFromPath( backupwords, path, index );
+                var address = getSpacechainAddressFromPrivkey( privkey );
+                return address;
             }
             //end of bitcoin functions
             //spacechain functions
@@ -1877,6 +1905,13 @@
                 transaction[ "outputs" ].every( function( output ) {
                     if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;return;}
                     if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;return;}
+                    //disallow sending money to the same address twice
+                    if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
+                        var this_address_once_had_money = await didThisSpacechainAddressEverHaveMoney( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
+                         if ( this_address_once_had_money ) {all_outputs_are_valid = false;return;}
+                    }
+                    //make no further checks on scripthashes, anything unique in the spacechain's history is fine
+                    //even if it is not a valid spacechain address -- so basically op_returns are fine
                     if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;return;}
                     if ( typeof( output[ "value" ] ) != "number" ) {all_outputs_are_valid = false;return;}
                     return true;
@@ -2042,11 +2077,54 @@
                 var locking_script_hex = textToHex( JSON.stringify( locking_script_array ) );
                 return locking_script_hex;
             }
-
             function getSpacechainAddressFromPrivkey( privkey ) {
                 var locking_script_hex = getLockingScriptHexFromPrivkey( privkey );
                 var address = hexToBech32( "sc", bitcoinjs.crypto.hash160( hexToBytes( locking_script_hex ) ).toString( "hex" ) );
                 return address;
+            }
+            async function didThisSpacechainAddressEverHaveMoney( address, wallet_identifier ) {
+                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                var hex = bech32ToHex( address );
+                var op_return = "6a34" + hex + $_GET[ "chain" ];
+                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                var response = await getData( url );
+                response = JSON.parse( response );
+                if ( response[ "data" ].length ) return true;
+                //check if any valid transaction in my spacechain's history created an output where that address was the scripthash
+                //to do that, start with an array of the transactions in my utxo set
+                var txs = [];
+                var utxo_set = localStorage[ `utxo_set_for_${wallet_identifier}` ];
+                utxo_set = JSON.parse( utxo_set );
+                if ( !utxo_set || !utxo_set.length ) return;
+                utxo_set.forEach( function( utxo ) {
+                    var txid = utxo.split( ":" )[ 0 ] + ":" + utxo.split( ":" )[ 1 ];
+                    txs.push( JSON.parse( getSpacechainTxByTxid( txid ) ) );
+                });
+                //then add their parents and so forth to that array
+                var i; for ( i=0; i<getSpacechainHashes().length; i++ ) {
+                    var current_length = String( txs.length );
+                    current_length = Number( current_length );
+                    txs.forEach( function( tx ) {
+                        tx[ "inputs" ].forEach( function( input ) {
+                            if ( Object.keys( input ).length == 5 ) {
+                                txs.push( JSON.parse( getSpacechainTxByTxid( input[ "blocknum" ] + ":" + input[ "tx_index" ] ) ) );
+                            }
+                        });
+                    });
+                    //stop if the number of valid transactions in the spacechain's history did not grow
+                    if ( txs.length == current_length ) break;
+                }
+                //check if any of the transactions in the txs array created an output where the address in question was in the scripthash
+                var output_was_created = false;
+                txs.every( function( tx ) {
+                    tx[ "outputs" ].every( function( output ) {
+                        if ( output[ "scripthash" ] == hex ) {output_was_created = true;return;}
+                        return true;
+                    });
+                    if ( output_was_created ) return;
+                    return true;
+                });
+                return output_was_created;
             }
             //end of spacechain functions
             //pegzone functions
@@ -2702,6 +2780,7 @@
                 });
             }
             async function syncChain() {
+                if ( !$_GET[ "chain" ] ) return;
                 console.log( "started syncing headers..." );
                 await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
                 console.log( "almost done syncing headers..." );
