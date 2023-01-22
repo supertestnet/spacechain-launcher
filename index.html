@@ -102,6 +102,9 @@
                 .launchpad button {
                     margin: 5px;
                 }
+                .spaceblocks p {
+                    word-wrap: break-word;
+                }
 	    </style>
         <script src="https://bitcoincore.tech/apps/bitcoinjs-ui/lib/bitcoinjs-lib.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/merkletreejs@latest/merkletree.js"></script>
@@ -1448,16 +1451,19 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
-                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                            if ( $_GET[ "wallet_id" ] ) {
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            }
                             return;
                         }
                         return true;
@@ -1505,16 +1511,19 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
-                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                            if ( $_GET[ "wallet_id" ] ) {
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            }
                             return;
                         }
                         return true;
@@ -1547,17 +1556,20 @@
                         console.log( JSON.stringify( spacechain ) );
                         spacechain.every( function( block, index ) {
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
-                                spacechain.length = index;
-                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                                if ( $_GET[ "wallet_id" ] ) {
+                                    var wallet_identifier = $_GET[ "wallet_id" ];
+                                    spacechain.length = index;
+                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    utxo_set.forEach( function( utxo, num ) {
+                                        var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                        if ( num_it_starts_with > index ) {
+                                            working_utxo_set.slice( num, 1 );
+                                        }
+                                    });
+                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                }
                                 return;
                             }
                             return true;
@@ -1576,16 +1588,19 @@
                         spacechain.every( function( block, index ) {
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                                 spacechain.length = index;
-                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                                if ( $_GET[ "wallet_id" ] ) {
+                                    var wallet_identifier = $_GET[ "wallet_id" ];
+                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    utxo_set.forEach( function( utxo, num ) {
+                                        var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                        if ( num_it_starts_with > index ) {
+                                            working_utxo_set.slice( num, 1 );
+                                        }
+                                    });
+                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                }
                                 return;
                             }
                             return true;
@@ -1608,16 +1623,19 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
-                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                            if ( $_GET[ "wallet_id" ] ) {
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            }
                             return;
                         }
                         return true;
@@ -1636,16 +1654,19 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
-                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                            if ( $_GET[ "wallet_id" ] ) {
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            }
                             return;
                         }
                         return true;
@@ -1673,16 +1694,19 @@
                     spacechain.every( function( block, index ) {
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
-                            if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                            if ( $_GET[ "wallet_id" ] ) {
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                utxo_set.forEach( function( utxo, num ) {
+                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                    if ( num_it_starts_with > index ) {
+                                        working_utxo_set.slice( num, 1 );
+                                    }
+                                });
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            }
                             return;
                         }
                         return true;
@@ -1701,16 +1725,19 @@
                 spacechain.every( function( block, index ) {
                     if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                         spacechain.length = index;
-                        if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                        var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                        var working_utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                        utxo_set.forEach( function( utxo, num ) {
-                            var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                            if ( num_it_starts_with > index ) {
-                                working_utxo_set.slice( num, 1 );
-                            }
-                        });
-                        localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( working_utxo_set );
+                        if ( $_GET[ "wallet_id" ] ) {
+                            var wallet_identifier = $_GET[ "wallet_id" ];
+                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                            var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                            var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                            utxo_set.forEach( function( utxo, num ) {
+                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                                if ( num_it_starts_with > index ) {
+                                    working_utxo_set.slice( num, 1 );
+                                }
+                            });
+                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                        }
                         return;
                     }
                     return true;
@@ -2084,7 +2111,6 @@
                 return address;
             }
             async function thisSpacechainAddressOnceHadMoney( address, wallet_identifier ) {
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var hex = bech32ToHex( address );
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
                 var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
@@ -2133,7 +2159,6 @@
             }
             async function getSpacechainAddressBalance( address, wallet_identifier ) {
                 var balance = 0;
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var hex = bech32ToHex( address );
                 if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return 0;
                 var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
@@ -2170,7 +2195,6 @@
             }
             async function getFirstUnusedSpacechainAddress( backupwords, wallet_identifier ) {
                 var first_unused_address = "";
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/0'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
@@ -2182,9 +2206,21 @@
                 }
                 return first_unused_address;
             }
+            async function getFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier ) {
+                var first_unused_address = "";
+                var i; for ( i=0; i<1000000; i++ ) {
+                    var path = "295'/0'/1'";
+                    var address = getSpacechainAddressFromPath( backupwords, path, i );
+                    var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( address, wallet_identifier );
+                    if ( !this_address_once_had_money ) {
+                        first_unused_address = address;
+                        break;
+                    }
+                }
+                return first_unused_address;
+            }
             async function getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier ) {
                 var index = -1;
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/0'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
@@ -2198,7 +2234,6 @@
             }
             async function getIndexOfFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier ) {
                 var index = -1;
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/1'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
@@ -2212,7 +2247,6 @@
             }
             async function getSpacechainBalance( backupwords, wallet_identifier ) {
                 var balance = 0;
-                if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var index_of_first_unused_address = await getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier );
                 var i; for ( i=0; i<index_of_first_unused_address; i++ ) {
                     var path = "295'/0'/0'";
@@ -2247,8 +2281,7 @@
                 });
                 return is_spent;
             }
-            async function loadSpacechainBalance() {
-                var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+            async function loadSpacechainBalance( wallet_identifier ) {
                 var balance = await getSpacechainBalance( localStorage[ "backup_words" ], wallet_identifier );
                 //var newpriv = "21a9dea505b9535993455951b413bca73f14155bd4385b6c7a972f4dd960a999";
                 //var newaddress = getSpacechainAddressFromPrivkey( newpriv );
@@ -2256,7 +2289,7 @@
                 //balance = balance + additional_balance;
                 $( '.spacecoin_balance' ).innerText = String( balance ) + " spacecoins";
                 //check every 5 seconds
-                setTimeout( function() {loadSpacechainBalance()}, 5000 );
+                setTimeout( function() {loadSpacechainBalance( wallet_identifier )}, 5000 );
             }
             //end of spacechain functions
             //pegzone functions
@@ -3060,7 +3093,7 @@
                         There <span class="is_or_are">are</span> currently <span class="num_of_miners">0</span> <span class="person_or_people">people</span> mining this spacechain, not counting yourself (if you are mining). Miners are who you get blocks from, so if no one is mining it, you will not see any blocks unless your browser downloaded them previously.
                     </p>
                     <div class="launchpad">
-                        <button class="view_your_blockchain">View blockchain</button>
+                        <button class="view_your_blockchain">View spacechain</button>
                         <button class="buy_and_sell_spacecoins">Buy and sell spacecoins</button>
                         <button class="manage_your_wallet">Manage your wallet</button>
                         <button class="mine_spaceblocks">Mining Center</button>
@@ -3095,7 +3128,7 @@
                         None so far
                     </p>
                 </div>
-                <textarea class="new_block_message_input" name="new_block_message_input" rows="8" placeholder="The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"></textarea>
+                <textarea class="new_block_message_input" name="new_block_message_input" rows="8" placeholder="Any text is a transaction"></textarea>
                 <p>
                     <button class="add_msg_to_block">Add transaction to block</button>
                 </p>
@@ -3120,7 +3153,7 @@
             </div>
         </div>
         <div class="pegzone">
-            <h1>Peg zone</h1>
+            <h1>Buy and sell</h1>
             <p><button onclick='window.location.href = window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + $_GET[ "chain" ] + `&wallet_id=${$_GET[ "wallet_id" ]}`;'>Back</button></p>
             <h2>Orderbook</h2>
             <p>
@@ -3128,7 +3161,7 @@
             </p>
             <div class="orderbook">
             </div>
-            <button class="make_offer">Make an offer</button> 
+            <button class="make_offer">Make an offer (this button doesn't work yet)</button> 
         </div>
         <div class="spacecoin_offer">
             <h1>Spacecoin offer</h1>
@@ -3165,7 +3198,7 @@
             <p>
                 Balance: <span class="spacecoin_balance">loading...</span>
             </p>
-            <button class="send_on_spacechain">Send</button> <button class="receive_on_spacechain">Receive</button>
+            <button class="send_on_spacechain">Send (this button doesn't work yet)</button> <button class="receive_on_spacechain">Receive</button>
             <br><br>
             <div class="spacecoin_payment_div_container">
                 <div class="spacecoin_payment_div">
@@ -3185,7 +3218,10 @@
                 await prepareAnchor();
             }
             $( '.view_first_spacechain' ).onclick = async function() {
-                window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6";
+                var url = window.location.protocol + "//" + window.location.hostname + window.location.pathname +
+                "?chain=" + "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6";
+                if ( $_GET[ "testing_wallet" ] ) url += "&wallet_id=" + "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                window.location.href = url;
             }
             $( '.genesis_block_submit' ).onclick = async function() {
                 var conf = confirm( `Are you sure you want to use this data? \n\nName: ${$( '.name_your_spacechain' ).value}\nMessage: ${$( '.genesis_message_input' ).value}` );
@@ -3281,7 +3317,9 @@
                                 mycoinbase_prep[ "wallet" ] = wallet_identifier;
                                 mycoinbase_prep[ "inputs" ] = [];
                                 var outputs = [];
-                                outputs.push( {"scripthash":"abababababababababababababababababababab","value":sum_of_all_inputs - sum_of_all_outputs} );
+                                var addy = await getFirstUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
+                                var scripthash = bech32ToHex( addy );
+                                outputs.push( {"scripthash":scripthash,"value":sum_of_all_inputs - sum_of_all_outputs} );
                                 mycoinbase_prep[ "outputs" ] = outputs;
                                 mycoinbase_prep[ "timelock" ] = 1;
                                 var mycoinbase = JSON.stringify( mycoinbase_prep );
@@ -3431,14 +3469,14 @@
             $( '.receive_on_spacechain' ).onclick = async function() {
                 $( '.spacecoin_payment_div_container' ).style.display = "block";
                 $( '.spacecoin_payment_caption' ).value = "loading...";
-                var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                var wallet_identifier = $_GET[ "wallet_id" ];
                 var first_unused_address = await getFirstUnusedSpacechainAddress( localStorage.backup_words, wallet_identifier );
                 $( '.spacecoin_payment_qr_code' ).innerHTML = ``;
                 $( '.spacecoin_payment_qr_code' ).append( createQR( first_unused_address ) );
                 $( '.spacecoin_payment_link' ).href = "spacechain:" + first_unused_address;
                 $( '.spacecoin_payment_caption' ).value = "spacechain:" + first_unused_address;
             }
-            loadSpacechainBalance();
+            if ( $_GET[ "wallet_id" ] ) loadSpacechainBalance( $_GET[ "wallet_id" ] );
         </script>
     </body>
 </html>
