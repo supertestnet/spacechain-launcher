@@ -3045,13 +3045,6 @@
                     socket.addEventListener( 'message', handleMessage );
                     socket.addEventListener( 'open', openConnection );
                 }
-                //check for new blocks on startup and every 60 seconds thereafter
-                if ( !num ) syncChain();
-                if ( num == 120 ) {
-                    num = 0;
-                } else {
-                    num = num + 1;
-                }
                 //every 5 seconds, get the spacechain's balance
                 var wallet_identifier = $_GET[ "wallet_id" ];
                 var double_the_number_of_seconds_to_wait = 10;
@@ -3062,8 +3055,16 @@
                     } catch ( e ) {}
                 }
                 //if there are no miners, try to resync every 5 seconds so that if they return you start syncing quickly
-                if ( $_GET[ "testing_no_sync" ] ) return;
-                if ( !myminers.length && num % 10 == 0 ) setTimeout( function() {syncChain();}, 5000 );
+                if ( !$_GET[ "testing_no_sync" ] ) {
+                    if ( !myminers.length && num % 10 == 0 ) setTimeout( function() {syncChain();}, 5000 );
+                }
+                //check for new blocks on startup and every 60 seconds thereafter
+                if ( !num ) syncChain();
+                if ( num == 120 ) {
+                    num = 0;
+                } else {
+                    num = num + 1;
+                }
                 setTimeout( function() {checkHeartbeat( num );}, 500 );
             }
             checkHeartbeat( 0 );
