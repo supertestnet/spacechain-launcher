@@ -33,7 +33,7 @@
                 .launch_page, .genesis_block_finalized, .payment_div_container, .new_block_payment_div_container,
                 .prelaunchpad, .spaceblock_explorer, .mining_center, .behold_the_network, .launch_instructions,
                 .buy_and_sell_spacecoins, .pegzone, .spacecoin_offer, .burn_payment_div_container,
-                .hidden_mining_info, .manage_your_wallet, .spacechain_wallet {
+                .hidden_mining_info, .manage_your_wallet, .spacechain_wallet, .spacecoin_payment_div_container {
                     display: none;
                 }
                 .genesis_block_finalized .genesis_block_title {
@@ -58,18 +58,20 @@
                     display: flex;
                     flex-direction: column;
                 }
-                .payment_div, .new_block_payment_div, .burn_payment_div {
+                .payment_div, .new_block_payment_div, .burn_payment_div, .spacecoin_payment_div {
                     max-width: 400px;
                     border: 1px solid black;
                 }
                 .qr_code {
                     width: 100%;
                 }
-                .launch_payment_caption_container, .new_block_payment_caption_container, .burn_payment_caption_container {
+                .launch_payment_caption_container, .new_block_payment_caption_container,
+                .burn_payment_caption_container, .spacecoin_payment_caption_container {
                     margin-top: -20px;
                     margin-bottom: 20px;
                 }
-                .launch_payment_caption, .new_block_payment_caption, .burn_payment_caption {
+                .launch_payment_caption, .new_block_payment_caption, .burn_payment_caption,
+                .spacecoin_payment_caption {
                     display: inline-block;
                     box-sizing: border-box;
                     width: calc( 90% - 40px );
@@ -84,7 +86,8 @@
                     vertical-align: middle;
                     margin-left: 10px;
                 }
-                .launch_payment_copier, .new_block_payment_copier, .burn_payment_copier {
+                .launch_payment_copier, .new_block_payment_copier, .burn_payment_copier,
+                .spacecoin_payment_copier {
                     box-sizing: border-box;
                     margin-left: 10px;
                     margin-right: 10px;
@@ -186,6 +189,9 @@
                 $( '.step_3_title' ).style.display = "none";
                 $( '.spaceblock_explorer' ).style.display = "none";
                 $( '.mining_center' ).style.display = "none";
+                $( '.pegzone' ).style.display = "none";
+                $( '.spacecoin_offer' ).style.display = "none";
+                $( '.spacechain_wallet' ).style.display = "none";
                 $( '.behold_the_network' ).style.display = "block";
                 $( '.launch_page' ).style.display = "block";
                 $( '.prelaunchpad' ).style.display = "block";
@@ -198,9 +204,8 @@
                 if ( num_of_miners == 1 ) {
                     $( '.person_or_people' ).innerText = "person";                    
                 }
-                if ( !$_GET[ "testing_wallet" ] ) return;
+                if ( !$_GET[ "wallet_id" ] ) return;
                 $( '.manage_your_wallet' ).style.display = "inline";
-                if ( !$_GET[ "testing_pegzone" ] ) return;
                 $( '.buy_and_sell_spacecoins' ).style.display = "inline";
             }
             var chain_til_theft_or_blockheight = [];
@@ -387,14 +392,14 @@
                 return bytesToHex( decoded );
             }
             function witnessStackToScriptWitness(witness) {
-                let buffer2 = buffer.Buffer.allocUnsafe(0);
+                let buffer2 = Buffer.allocUnsafe(0);
                 function writeSlice(slice) {
-                    buffer2 = buffer.Buffer.concat([buffer2, buffer.Buffer.from(slice)]);
+                    buffer2 = Buffer.concat([buffer2, Buffer.from(slice)]);
                 }
                 function writeVarInt(i) {
                     const currentLen = buffer2.length;
                     const varintLen = varuintBitcoin.encodingLength(i);
-                    buffer2 = buffer.Buffer.concat([buffer2, buffer.Buffer.allocUnsafe(varintLen)]);
+                    buffer2 = Buffer.concat([buffer2, Buffer.allocUnsafe(varintLen)]);
                     varuintBitcoin.encode(i, buffer2, currentLen);
                 }
                 function writeVarSlice(slice) {
@@ -505,17 +510,17 @@
                   index: utxo[ "output_number" ],
                   sequence: 0xfffffffe,
                   witnessUtxo: {
-                    script: buffer.Buffer.from( '0020' +
-                      bitcoinjs.crypto.sha256( buffer.Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
+                    script: Buffer.from( '0020' +
+                      bitcoinjs.crypto.sha256( Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
                     value: utxo[ "amount" ]
                   },
-                  witnessScript: buffer.Buffer.from( witnessscript, "hex" )
+                  witnessScript: Buffer.from( witnessscript, "hex" )
                 });
                 psbt.addOutput({
                   address: anchor_address,
                   value: 546,
                 });
-                psbt.signInput( 0, bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( utxo[ "privkey" ], "hex" ) ) );
+                psbt.signInput( 0, bitcoinjs.ECPair.fromPrivateKey( Buffer.from( utxo[ "privkey" ], "hex" ) ) );
 
                 var getFinalScripts = ( txindex, input, script ) => {
                   // Step 1: Check to make sure the meaningful locking script matches what you expect.
@@ -530,8 +535,8 @@
                       output: script,
                       input: bitcoinjs.script.compile([
                         input.partialSig[ 0 ].signature,
-                        buffer.Buffer.from( preimage, "hex" ),
-                        buffer.Buffer.from( spaceblock_hash, "hex" ),
+                        Buffer.from( preimage, "hex" ),
+                        Buffer.from( spaceblock_hash, "hex" ),
                       ]),
                     }
                   });
@@ -555,28 +560,28 @@
                   index: 0,
                   sequence: 1,
                   witnessUtxo: {
-                    script: buffer.Buffer.from( '0020' +
-                      bitcoinjs.crypto.sha256( buffer.Buffer.from( anchor_witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
+                    script: Buffer.from( '0020' +
+                      bitcoinjs.crypto.sha256( Buffer.from( anchor_witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
                     value: 546
                   },
-                  witnessScript: buffer.Buffer.from( anchor_witnessscript, "hex" )
+                  witnessScript: Buffer.from( anchor_witnessscript, "hex" )
                 });
                 psbt.addInput({
                   hash: new_utxo[ "tx_id" ],
                   index: new_utxo[ "output_number" ],
                   sequence: 0xfffffffe,
                   witnessUtxo: {
-                    script: buffer.Buffer.from( '0020' +
-                      bitcoinjs.crypto.sha256( buffer.Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
+                    script: Buffer.from( '0020' +
+                      bitcoinjs.crypto.sha256( Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
                     value: new_utxo[ "amount" ]
                   },
-                  witnessScript: buffer.Buffer.from( witnessscript, "hex" )
+                  witnessScript: Buffer.from( witnessscript, "hex" )
                 });
                 psbt.addOutput({
                   address: anchor_address,
                   value: 546,
                 });
-                psbt.signInput( 1, bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( new_utxo[ "privkey" ], "hex" ) ) );
+                psbt.signInput( 1, bitcoinjs.ECPair.fromPrivateKey( Buffer.from( new_utxo[ "privkey" ], "hex" ) ) );
 
                 var getFinalScripts1 = ( txindex, input, script ) => {
                   // Step 1: Check to make sure the meaningful locking script matches what you expect.
@@ -590,7 +595,7 @@
                     redeem: {
                       output: script,
                       input: bitcoinjs.script.compile([
-                        buffer.Buffer.from( spaceblock_hash, "hex" ),
+                        Buffer.from( spaceblock_hash, "hex" ),
                       ]),
                     }
                   });
@@ -614,8 +619,8 @@
                       output: script,
                       input: bitcoinjs.script.compile([
                         input.partialSig[ 0 ].signature,
-                        buffer.Buffer.from( preimage, "hex" ),
-                        buffer.Buffer.from( "", "hex" ),
+                        Buffer.from( preimage, "hex" ),
+                        Buffer.from( "", "hex" ),
                       ]),
                     }
                   });
@@ -642,18 +647,18 @@
                   index: utxo[ "output_number" ],
                   sequence: 0xfffffffe,
                   witnessUtxo: {
-                    script: buffer.Buffer.from( '0020' +
-                      bitcoinjs.crypto.sha256( buffer.Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
+                    script: Buffer.from( '0020' +
+                      bitcoinjs.crypto.sha256( Buffer.from( witnessscript, "hex" ) ).toString( "hex" ), "hex" ),
                     value: utxo[ "amount" ]
                   },
-                  witnessScript: buffer.Buffer.from( witnessscript, "hex" )
+                  witnessScript: Buffer.from( witnessscript, "hex" )
                 });
                 psbt
                   .addOutput({
                     script: embed.output,
                     value: amount_to_burn,
                 });
-                psbt.signInput( 0, bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( utxo[ "privkey" ], "hex" ) ) );
+                psbt.signInput( 0, bitcoinjs.ECPair.fromPrivateKey( Buffer.from( utxo[ "privkey" ], "hex" ) ) );
 
                 var getFinalScripts = ( txindex, input, script ) => {
                   // Step 1: Check to make sure the meaningful locking script matches what you expect.
@@ -668,8 +673,8 @@
                       output: script,
                       input: bitcoinjs.script.compile([
                         input.partialSig[ 0 ].signature,
-                        buffer.Buffer.from( preimage, "hex" ),
-                        buffer.Buffer.from( "", "hex" ),
+                        Buffer.from( preimage, "hex" ),
+                        Buffer.from( "", "hex" ),
                       ]),
                     }
                   });
@@ -709,7 +714,7 @@
                 return bitcoinjs.ECPair.fromPrivateKey( node.privateKey ).privateKey.toString( "hex" );
             }
             function getPrivkeyHexFromPath( backupwords, path, index ) {
-                //standard segwit path is m/84'/0'/0'/0 so “path” should be 84'/0'/0' and “index” 0
+                //standard spacechain path is m/295'/0'/0'/0 so “path” should be 295'/0'/0' and “index” 0
                 var seed = bip39.mnemonicToSeedSync( backupwords );
                 var node = bip32.fromSeed( seed );
                 var path = "m/" + path + "/" + index;
@@ -733,7 +738,7 @@
                 var utxo = utxos[ 0 ];
                 //the utxo object is used like this: utxo[ "tx_id" ], utxo[ "output_number" ],
                 //utxo[ "amount" ], utxo[ "privkey" ], utxo[ "pubkey" ]
-                var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
+                var pmthash = bitcoinjs.crypto.sha256( Buffer.from( preimage, "hex" ) ).toString( "hex" );
                 //add the spaceblock's hash to bitcoin's blockchain
                 var rawtx = getRawTxThatMakesAnchorOutputFromSwapAddress( utxo, timelock, serverPubkey, pmthash, anchor_address, spaceblock_hash, preimage );
                 var txid = await pushBTCpmt( rawtx );
@@ -767,7 +772,7 @@
                     var utxo = utxos[ 0 ];
                     //the utxo object is used like this: utxo[ "tx_id" ], utxo[ "output_number" ],
                     //utxo[ "amount" ], utxo[ "privkey" ], utxo[ "pubkey" ]
-                    var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
+                    var pmthash = bitcoinjs.crypto.sha256( Buffer.from( preimage, "hex" ) ).toString( "hex" );
                     //add the spaceblock's hash to bitcoin's blockchain
                     var rawtx = getRawTxThatMakesAnchorOutputFromSwapAddress( utxo, timelock, serverPubkey, pmthash, anchor_address, spaceblock_hash, preimage );
                     var txid = await pushBTCpmt( rawtx );
@@ -776,7 +781,7 @@
                     var utxos = await getUTXOsInAddress( address, privkey, pubkey );
                     var utxo = utxos[ 0 ];
                     console.log( preimage );
-                    var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
+                    var pmthash = bitcoinjs.crypto.sha256( Buffer.from( preimage, "hex" ) ).toString( "hex" );
                     //add the spaceblock's hash to bitcoin's blockchain
                     console.log( "made it here", 1 );
                     var rawtx = getRawTxThatMovesAnchorOutput( utxo, anchor_tx, timelock, serverPubkey, pmthash, anchor_address, spaceblock_hash, preimage );
@@ -790,7 +795,7 @@
                 var utxo_is_ready = await utxoIsReady( address, amount_to_burn_plus_fee, privkey, pubkey );
                 var utxos = await getUTXOsInAddress( address, privkey, pubkey );
                 var utxo = utxos[ 0 ];
-                var pmthash = bitcoinjs.crypto.sha256( buffer.Buffer.from( preimage, "hex" ) ).toString( "hex" );
+                var pmthash = bitcoinjs.crypto.sha256( Buffer.from( preimage, "hex" ) ).toString( "hex" );
                 //add the op_return to bitcoin's blockchain
                 var rawtx = getRawTxThatMakesAnOpReturn( utxo, timelock, serverPubkey, pmthash, op_return, preimage, amount_to_burn );
                 var txid = await pushBTCpmt( rawtx );
@@ -1903,7 +1908,7 @@
                     if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;return;}
                     //disallow sending money to the same address twice
                     if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
-                        var this_address_once_had_money = await didThisSpacechainAddressEverHaveMoney( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
+                        var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
                          if ( this_address_once_had_money ) {all_outputs_are_valid = false;return;}
                     }
                     //make no further checks on scripthashes, anything unique in the spacechain's history is fine
@@ -2078,14 +2083,16 @@
                 var address = hexToBech32( "sc", bitcoinjs.crypto.hash160( hexToBytes( locking_script_hex ) ).toString( "hex" ) );
                 return address;
             }
-            async function didThisSpacechainAddressEverHaveMoney( address, wallet_identifier ) {
+            async function thisSpacechainAddressOnceHadMoney( address, wallet_identifier ) {
                 if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 var hex = bech32ToHex( address );
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
                 var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
                 var response = await getData( url );
+                if ( !isValidJson( response ) ) console.log( response );
                 response = JSON.parse( response );
-                if ( response[ "data" ].length ) return true;
+                if ( !Object.keys( response ).includes( "data" ) ) console.log( response );
+                if ( response && response[ "data" ] && response[ "data" ].length ) return true;
                 //check if any valid transaction in my spacechain's history created an output where that address was the scripthash
                 //to do that, start with an array of the transactions in my utxo set
                 var txs = [];
@@ -2143,7 +2150,12 @@
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
                 var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
                 var response = await getData( url );
+                if ( !isValidJson( response ) ) console.log( response );
                 response = JSON.parse( response );
+                if ( !Object.keys( response ).includes( "data" ) ) {
+                    console.log( response );
+                    return "error";
+                }
                 if ( !response[ "data" ].length ) return 0;
                 var txid = response[ "data" ][ 0 ][ "transaction_hash" ];
                 var output_number = response[ "data" ][ 0 ][ "index" ];
@@ -2162,7 +2174,7 @@
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/0'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
-                    var this_address_once_had_money = await didThisSpacechainAddressEverHaveMoney( address, wallet_identifier );
+                    var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( address, wallet_identifier );
                     if ( !this_address_once_had_money ) {
                         first_unused_address = address;
                         break;
@@ -2176,7 +2188,7 @@
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/0'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
-                    var this_address_once_had_money = await didThisSpacechainAddressEverHaveMoney( address, wallet_identifier );
+                    var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( address, wallet_identifier );
                     if ( !this_address_once_had_money ) {
                         index = i;
                         break;
@@ -2190,7 +2202,7 @@
                 var i; for ( i=0; i<1000000; i++ ) {
                     var path = "295'/0'/1'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
-                    var this_address_once_had_money = await didThisSpacechainAddressEverHaveMoney( address, wallet_identifier );
+                    var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( address, wallet_identifier );
                     if ( !this_address_once_had_money ) {
                         index = i;
                         break;
@@ -2201,18 +2213,20 @@
             async function getSpacechainBalance( backupwords, wallet_identifier ) {
                 var balance = 0;
                 if ( !wallet_identifier ) wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
-                var index_of_first_unused_address = getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier );
+                var index_of_first_unused_address = await getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier );
                 var i; for ( i=0; i<index_of_first_unused_address; i++ ) {
                     var path = "295'/0'/0'";
-                    var address = getSpacechainAddressFromPath( backupwords, path, index );
+                    var address = getSpacechainAddressFromPath( backupwords, path, i );
                     var additional_balance = await getSpacechainAddressBalance( address, wallet_identifier );
+                    if ( additional_balance == "error" ) return balance;
                     balance = balance + additional_balance;
                 }
                 var index_of_first_unused_change_address = getIndexOfFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier );
                 var i; for ( i=0; i<index_of_first_unused_change_address; i++ ) {
                     var path = "295'/0'/1'";
-                    var address = getSpacechainAddressFromPath( backupwords, path, index );
+                    var address = getSpacechainAddressFromPath( backupwords, path, i );
                     var additional_balance = await getSpacechainAddressBalance( address, wallet_identifier );
+                    if ( additional_balance == "error" ) return balance;
                     balance = balance + additional_balance;
                 }
                 return balance;
@@ -2235,14 +2249,14 @@
             }
             async function loadSpacechainBalance() {
                 var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
-                if ( localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
-                    var balance = await getSpacechainBalance( localStorage[ "backup_words" ], wallet_identifier );
-                    //var additional_balance = await getSpacechainAddressBalance( "sc13dnuzrfk3p69kh7ajcp7d8qm0eg4vjtqjs6jdm", wallet_identifier );
-                    //balance = balance + additional_balance;
-                    $( '.spacecoin_balance' ).innerText = String( balance ) + " spacecoins";
-                    //check every 5 seconds
-                    setTimeout( function() {loadSpacechainBalance()}, 5000 );
-                }
+                var balance = await getSpacechainBalance( localStorage[ "backup_words" ], wallet_identifier );
+                //var newpriv = "21a9dea505b9535993455951b413bca73f14155bd4385b6c7a972f4dd960a999";
+                //var newaddress = getSpacechainAddressFromPrivkey( newpriv );
+                //var additional_balance = await getSpacechainAddressBalance( newaddress, wallet_identifier );
+                //balance = balance + additional_balance;
+                $( '.spacecoin_balance' ).innerText = String( balance ) + " spacecoins";
+                //check every 5 seconds
+                setTimeout( function() {loadSpacechainBalance()}, 5000 );
             }
             //end of spacechain functions
             //pegzone functions
@@ -2388,6 +2402,10 @@
                 if ( !isValidJson( message ) ) return;
                 message = JSON.parse( message );
                 /*
+                //this code is for a planned feature called transaction sponsorship
+                //which, if I ever finish it, will allow users to pay other people
+                //on the lightning network for enough sats on the base layer to pay
+                //the mining fee to create their anchor utxo
                 if (
                     "msg_type" in message &&
                     "swap_address" in message &&
@@ -2414,6 +2432,7 @@
                         return;
                     }
                     if ( page == "launch_page" ) {
+                        $( '.launch_payment_qr_code' ).innerHTML = ``;
                         $( '.launch_payment_qr_code' ).append( createQR( message[ "swap_invoice" ].toUpperCase() ) );
                         $( '.launch_payment_link' ).href = "lightning:" + message[ "swap_invoice" ];
                         $( '.launch_payment_caption' ).value = "lightning:" + message[ "swap_invoice" ];
@@ -2432,6 +2451,7 @@
                         step3();
                     }
                     if ( page == "mining_center" ) {
+                        $( '.new_block_payment_qr_code' ).innerHTML = ``;
                         $( '.new_block_payment_qr_code' ).append( createQR( message[ "swap_invoice" ].toUpperCase() ) );
                         $( '.new_block_payment_link' ).href = "lightning:" + message[ "swap_invoice" ];
                         $( '.new_block_payment_caption' ).value = "lightning:" + message[ "swap_invoice" ];
@@ -2579,22 +2599,24 @@
                         //it is a new block so add it to your own chain and update your utxo set
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
-                        claimed_block.forEach( async function( tx, index ) {
-                            if ( !index ) return;
-                            var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
-                            var blocknum = getSpacechainHashes().length;
-                            var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                            if ( coinbase > -1 ) {
-                                var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
-                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                if ( !utxo_set.includes( txid_plus_output_number ) ) {
-                                    utxo_set.push( txid_plus_output_number );
+                        if ( $_GET[ "wallet_id" ] ) {
+                            claimed_block.forEach( async function( tx, index ) {
+                                if ( !index ) return;
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                var blocknum = getSpacechainHashes().length;
+                                var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
+                                if ( coinbase > -1 ) {
+                                    var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
+                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    if ( !utxo_set.includes( txid_plus_output_number ) ) {
+                                        utxo_set.push( txid_plus_output_number );
+                                    }
+                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
                                 }
-                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( utxo_set );
-                            }
-                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
-                        });
+                                await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
+                            });
+                        }
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
                     } else if (
@@ -2605,22 +2627,24 @@
                         //it is a new block so add it to your own chain
                         spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                         localStorage[ "spacechain" ] = JSON.stringify( spacechain );
-                        claimed_block.forEach( async function( tx, index ) {
-                            if ( !index ) return;
-                            var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
-                            var blocknum = getSpacechainHashes().length;
-                            var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                            if ( coinbase > -1 ) {
-                                var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
-                                if ( !localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] );
-                                if ( !utxo_set.includes( txid_plus_output_number ) ) {
-                                    utxo_set.push( txid_plus_output_number );
+                        if ( $_GET[ "wallet_id" ] ) {
+                            claimed_block.forEach( async function( tx, index ) {
+                                if ( !index ) return;
+                                var wallet_identifier = $_GET[ "wallet_id" ];
+                                var blocknum = getSpacechainHashes().length;
+                                var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
+                                if ( coinbase > -1 ) {
+                                    var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
+                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                    if ( !utxo_set.includes( txid_plus_output_number ) ) {
+                                        utxo_set.push( txid_plus_output_number );
+                                    }
+                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
                                 }
-                                localStorage[ "utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be" ] = JSON.stringify( utxo_set );
-                            }
-                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
-                        });
+                                await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
+                            });
+                        }
                         requestBlock( getSpacechainHashes().length + 1 );
                         return;
                     } else if (
@@ -2730,6 +2754,7 @@
                 var swap_address = getSwapAddress( pubkey, pubkey, payment_hash, timelock );
                 sessionStorage[ "utxo_data" ] = JSON.stringify( {"privkey":privkey,"pubkey":pubkey,"preimage":preimage,"pmthash":payment_hash,"timelock":timelock,"amount":amount} );
                 if ( page == "launch_page" ) {
+                    $( '.launch_payment_qr_code' ).innerHTML = ``;
                     $( '.launch_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
                     $( '.launch_payment_link' ).href = "bitcoin:" + swap_address;
                     $( '.launch_payment_caption' ).value = "bitcoin:" + swap_address;
@@ -2756,6 +2781,7 @@
                     window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + txid;
                 }
                 if ( page == "mining_center" ) {
+                    $( '.new_block_payment_qr_code' ).innerHTML = ``;
                     $( '.new_block_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
                     $( '.new_block_payment_link' ).href = "bitcoin:" + swap_address;
                     $( '.new_block_payment_caption' ).value = "bitcoin:" + swap_address;
@@ -3095,7 +3121,7 @@
         </div>
         <div class="pegzone">
             <h1>Peg zone</h1>
-            <p><button class="view_network">Back</button></p>
+            <p><button onclick='window.location.href = window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + $_GET[ "chain" ] + `&wallet_id=${$_GET[ "wallet_id" ]}`;'>Back</button></p>
             <h2>Orderbook</h2>
             <p>
                 Buy and sell spacecoins
@@ -3106,7 +3132,7 @@
         </div>
         <div class="spacecoin_offer">
             <h1>Spacecoin offer</h1>
-            <p><button onclick='$( ".buy_and_sell_spacecoins" ).click();'>Back</button></p>
+            <p><button onclick='$( ".spacecoin_offer" ).style.display = "none";$( ".buy_and_sell_spacecoins" ).click();'>Back</button></p>
             <div class="offer_details"></div>
             <p>
                 How many spacecoins do you want to buy from this seller?
@@ -3140,6 +3166,16 @@
                 Balance: <span class="spacecoin_balance">loading...</span>
             </p>
             <button class="send_on_spacechain">Send</button> <button class="receive_on_spacechain">Receive</button>
+            <br><br>
+            <div class="spacecoin_payment_div_container">
+                <div class="spacecoin_payment_div">
+                    <a class="spacecoin_payment_link" target="_blank"><div class="spacecoin_payment_qr_code"></div></a>
+                    <center class="spacecoin_payment_caption_container">
+                        <input class="spacecoin_payment_caption" disabled>
+                        <button class="spacecoin_payment_copier" onclick='copyText( $( ".spacecoin_payment_caption" ) );'>&#10063;</button>
+                    </center>
+                </div>
+            </div>
         </div>
         <script>
             if ( $_GET[ "chain" ] ) $( '.newb_warning' ).onload = $( '.newb_warning' ).style.display = "none";
@@ -3176,16 +3212,19 @@
                 showBlockInExplorer( block, index );
             }
             $( '.mine_spaceblocks' ).onclick = async function() {
-                sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = "[]";
-                if ( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] ) {
-                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] );
-                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] );
-                    utxo_set.forEach( function( utxo, index ) {
-                        if ( utxo.startsWith( String( getSpacechainHashes().length  + 1 ) ) ) {
-                            working_utxo_set.splice( index, 1 );
-                        }
-                    });
-                    localStorage[ `utxo_set_for_5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be` ] = JSON.stringify( working_utxo_set );
+                if ( $_GET[ "wallet_id" ] ) {
+                    sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = "[]";
+                    var wallet_identifier = $_GET[ "wallet_id" ];
+                    if ( localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                        var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                        var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                        utxo_set.forEach( function( utxo, index ) {
+                            if ( utxo.startsWith( String( getSpacechainHashes().length  + 1 ) ) ) {
+                                working_utxo_set.splice( index, 1 );
+                            }
+                        });
+                        localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                    }
                 }
                 $( '.launch_page' ).style.display = "none";
                 $( '.mining_center' ).style.display = "block";
@@ -3215,65 +3254,66 @@
                 //if the transaction pretends to be a coinbase, ignore it
                 if ( isValidJson( msg ) && Object.keys( JSON.parse( msg ) ).includes( "inputs" ) && Array.isArray( JSON.parse( msg )[ "inputs" ] ) && !JSON.parse( msg )[ "inputs" ].length ) return;
                 if ( sessionStorage[ "mining" ] ) {
-                    //without adding its transactions to the utxo set, check if the transaction is valid
-                    var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
-                    var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
-                    console.log( "tx is good?", tx_is_good );
-                    //ignore the transaction if it is no good
-                    if ( !tx_is_good ) {
-                    } else {
-                        var transaction = JSON.parse( msg );
-                        //ensure the value matches the difference between the inputs minus the outputs
-                        var sum_of_all_outputs = 0;
-                        transaction[ "outputs" ].forEach( function( output ) {
-                            sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
-                        });
-                        var sum_of_all_inputs = 0;
-                        transaction[ "inputs" ].forEach( function( input ) {
-                            sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
-                        });
-                        var my_fee = sum_of_all_inputs - sum_of_all_outputs;
-                        //if the transaction does not pay you, do not mine it
-                        if ( !my_fee ) return;
-                        //check if the current block has a coinbase transaction for this wallet that pays me
-                        if ( sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] == "[]" ) {
-                            //if it does not, add that first, then add this transaction
-                            var mycoinbase_prep = {}
-                            mycoinbase_prep[ "wallet" ] = wallet_identifier;
-                            mycoinbase_prep[ "inputs" ] = [];
-                            var outputs = [];
-                            outputs.push( {"scripthash":"abababababababababababababababababababab","value":sum_of_all_inputs - sum_of_all_outputs} );
-                            mycoinbase_prep[ "outputs" ] = outputs;
-                            mycoinbase_prep[ "timelock" ] = 1;
-                            var mycoinbase = JSON.stringify( mycoinbase_prep );
-                            sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = mycoinbase;
-                            userdata.push( mycoinbase );
-                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
-                            //add the new utxos to your utxo set
-                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
-                                var utxo_set = [];
+                    if ( $_GET[ "wallet_id" ] ) {
+                        //without adding its transactions to the utxo set, check if the transaction is valid
+                        var wallet_identifier = $_GET[ "wallet_id" ];
+                        var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
+                        console.log( "tx is good?", tx_is_good );
+                        //ignore the transaction if it is no good, otherwise continue
+                        if ( tx_is_good ) {
+                            var transaction = JSON.parse( msg );
+                            //ensure the value matches the difference between the inputs minus the outputs
+                            var sum_of_all_outputs = 0;
+                            transaction[ "outputs" ].forEach( function( output ) {
+                                sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                            });
+                            var sum_of_all_inputs = 0;
+                            transaction[ "inputs" ].forEach( function( input ) {
+                                sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                            });
+                            var my_fee = sum_of_all_inputs - sum_of_all_outputs;
+                            //if the transaction does not pay you, do not mine it
+                            if ( !my_fee ) return;
+                            //check if the current block has a coinbase transaction for this wallet that pays me
+                            if ( sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] == "[]" ) {
+                                //if it does not, add that first, then add this transaction
+                                var mycoinbase_prep = {}
+                                mycoinbase_prep[ "wallet" ] = wallet_identifier;
+                                mycoinbase_prep[ "inputs" ] = [];
+                                var outputs = [];
+                                outputs.push( {"scripthash":"abababababababababababababababababababab","value":sum_of_all_inputs - sum_of_all_outputs} );
+                                mycoinbase_prep[ "outputs" ] = outputs;
+                                mycoinbase_prep[ "timelock" ] = 1;
+                                var mycoinbase = JSON.stringify( mycoinbase_prep );
+                                sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = mycoinbase;
+                                userdata.push( mycoinbase );
+                                sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                                //add the new utxos to your utxo set
+                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                                    var utxo_set = [];
+                                } else {
+                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                }
+                                var index_of_coinbase = userdata.indexOf( mycoinbase );
+                                if ( !utxo_set.includes( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" ) ) {
+                                    utxo_set.push( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" );
+                                }
+                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                                await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
                             } else {
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                                //otherwise, modify the coinbase transaction, then add this transaction
+                                var oldcoinbase = sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ];
+                                newcoinbase = JSON.parse( oldcoinbase );
+                                oldcoinbase = JSON.parse( oldcoinbase );
+                                newcoinbase.outputs[ 0 ][ "value" ] = oldcoinbase.outputs[ 0 ][ "value" ] + my_fee;
+                                //find the old coinbase
+                                var index_of_old_coinbase = userdata.indexOf( JSON.stringify( oldcoinbase ) );
+                                //replace it with the new one
+                                userdata.splice( index_of_old_coinbase, 1, JSON.stringify( newcoinbase ) );
+                                sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                                //add the new utxos to your utxo set
+                                await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
                             }
-                            var index_of_coinbase = userdata.indexOf( mycoinbase );
-                            if ( !utxo_set.includes( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" ) ) {
-                                utxo_set.push( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" );
-                            }
-                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
-                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
-                        } else {
-                            //otherwise, modify the coinbase transaction, then add this transaction
-                            var oldcoinbase = sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ];
-                            newcoinbase = JSON.parse( oldcoinbase );
-                            oldcoinbase = JSON.parse( oldcoinbase );
-                            newcoinbase.outputs[ 0 ][ "value" ] = oldcoinbase.outputs[ 0 ][ "value" ] + my_fee;
-                            //find the old coinbase
-                            var index_of_old_coinbase = userdata.indexOf( JSON.stringify( oldcoinbase ) );
-                            //replace it with the new one
-                            userdata.splice( index_of_old_coinbase, 1, JSON.stringify( newcoinbase ) );
-                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
-                            //add the new utxos to your utxo set
-                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
                         }
                     }
                 }
@@ -3328,7 +3368,9 @@
                 offer.append( pgraph );
                 var anchor = document.createElement( "a" );
                 //I don't want to put the "chain" element in the next url because then when I load it, it will load view_network_home...but
-                anchor.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + `?offer=${$_GET[ "chain" ]}&chain=${$_GET[ "chain" ]}`;
+                var url = window.location.protocol + "//" + window.location.hostname + window.location.pathname + `?offer=${$_GET[ "chain" ]}&chain=${$_GET[ "chain" ]}`;
+                if ( $_GET[ "wallet_id" ] ) url += "&wallet_id=" + $_GET[ "wallet_id" ];
+                anchor.href = url;
                 var button = document.createElement( "button" );
                 button.innerText = "View offer";
                 anchor.append( button );
@@ -3339,8 +3381,10 @@
                 $( '.orderbook_fee' ).innerText = String( fee ) + " sats";
             }
             $( '.accept_offer' ).onclick = async function() {
+                var spacechain_address = $( '.post_burn_spacechain_address' ).value;
+                if ( spacechain_address.startsWith( "spacechain:" ) ) spacechain_address = spacechain_address.substring( 11 );
                 try {
-                    var spacechain_address = bech32ToHex( $( '.post_burn_spacechain_address' ).value );
+                    spacechain_address = bech32ToHex( spacechain_address );
                 } catch( e ) {
                     alert( "something went wrong, please enter a valid spacechain address with no typos and then try again." );
                     return;
@@ -3364,6 +3408,7 @@
                 var payment_hash = bitcoinjs.crypto.sha256( hexToBytes( preimage ) ).toString( "hex" );
                 var swap_address = getSwapAddress( pubkey, pubkey, payment_hash, timelock );
                 sessionStorage[ "utxo_data" ] = JSON.stringify( {"privkey":privkey,"pubkey":pubkey,"preimage":preimage,"pmthash":payment_hash,"timelock":timelock,"amount":amount_to_burn_plus_fee} );
+                $( '.burn_payment_qr_code' ).innerHTML = ``;
                 $( '.burn_payment_qr_code' ).append( createQR( swap_address.toUpperCase() ) );
                 $( '.burn_payment_link' ).href = "bitcoin:" + swap_address;
                 $( '.burn_payment_caption' ).value = "bitcoin:" + swap_address;
@@ -3379,7 +3424,19 @@
             }
             $( '.manage_your_wallet' ).onclick = function() {
                 $( '.launch_page' ).style.display = "none";
+                $( '.spacecoin_payment_div_container' ).style.display = "none";
+                $( '.spacecoin_payment_qr_code' ).innerHTML = ``;
                 $( '.spacechain_wallet' ).style.display = "block";
+            }
+            $( '.receive_on_spacechain' ).onclick = async function() {
+                $( '.spacecoin_payment_div_container' ).style.display = "block";
+                $( '.spacecoin_payment_caption' ).value = "loading...";
+                var wallet_identifier = "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                var first_unused_address = await getFirstUnusedSpacechainAddress( localStorage.backup_words, wallet_identifier );
+                $( '.spacecoin_payment_qr_code' ).innerHTML = ``;
+                $( '.spacecoin_payment_qr_code' ).append( createQR( first_unused_address ) );
+                $( '.spacecoin_payment_link' ).href = "spacechain:" + first_unused_address;
+                $( '.spacecoin_payment_caption' ).value = "spacechain:" + first_unused_address;
             }
             loadSpacechainBalance();
         </script>
