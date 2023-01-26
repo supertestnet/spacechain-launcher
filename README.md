@@ -1,6 +1,10 @@
 # Spacechain launcher
 An implementation of a spacechain with a mechanism for launching your own
 
+# How to play with it
+
+Go here: https://supertestnet.github.io/spacechain-launcher/
+
 # What works
 
 The governance mechanism seems to work. Spaceblocks are created by hashing some data and committing that hash to bitcoin's blockchain. Client software comes to consensus on the order of transactions by observing the order in which spaceblock hashes are committed. Spaceblocks themselves are distributed out of band through a seemingly peer to peer (but actually not) method: nostr dms.
