@@ -1935,32 +1935,34 @@
                     if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;break;}
                     //disallow sending money to the same address twice
                     if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
-                        var this_address_once_had_money = await thisSpacechainAddressHadMoneyBeforeSpaceblock( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier, blocknum );
+                        var this_address_once_had_money = await thisSpacechainAddressHadMoneyBeforeSpaceblock( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier, blocknum, i_am_mining_this_tx );
                         if ( this_address_once_had_money ) {all_outputs_are_valid = false;break;}
                     }
                     //make no further checks on scripthashes, anything unique in the spacechain's history is fine
                     //even if it is not a valid spacechain address -- so basically op_returns are fine
                     if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
                     if ( typeof( output[ "value" ] ) != "number" || String( output[ "value" ] ).includes( "." ) ) {all_outputs_are_valid = false;break;}
+                    console.log( output[ "value" ], output[ "value" ] < 0 );
+                    if ( output[ "value" ] < 0 ) {all_outputs_are_valid = false;break;}
                 }
                 if ( !all_outputs_are_valid ) return;
                 var all_inputs_are_valid = true;
                 var i; for ( i=0; i<transaction[ "inputs" ].length; i++ ) {
                     var input = transaction[ "inputs" ][ i ];
-                    if ( Object.keys( input ).length != 4 && input.length != 5 ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length != 4 && Object.keys( input ).length != 5 ) {all_inputs_are_valid = false;break;}
                     if ( !Object.keys( input ).includes( "redeem_script" ) ) {all_inputs_are_valid = false;break;}
                     if ( !Object.keys( input ).includes( "value" ) ) {all_inputs_are_valid = false;break;}
                     if ( !Object.keys( input ).includes( "output_index" ) ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 4 && !Object.keys( input ).includes( "burntx" ) ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 5 && !Object.keys( input ).includes( "blocknum" ) ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 5 && !Object.keys( input ).includes( "tx_index" ) ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 4 && !Object.keys( input ).includes( "burntx" ) ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 5 && !Object.keys( input ).includes( "blocknum" ) ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 5 && !Object.keys( input ).includes( "tx_index" ) ) {all_inputs_are_valid = false;break;}
                     if ( typeof( input[ "value" ] ) != "number" || String( input[ "value" ] ).includes( "." ) ) {all_inputs_are_valid = false;break;}
                     if ( typeof( input[ "output_index" ] ) != "number" || String( input[ "output_index" ] ).includes( "." ) ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 5 && typeof( input[ "blocknum" ] ) != "number" || String( input[ "blocknum" ] ).includes( "." ) ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 5 && typeof( input[ "tx_index" ] ) != "number" || String( input[ "tx_index" ] ).includes( "." ) ) {all_inputs_are_valid = false;break;}
-                    if ( !i_am_mining_this_tx && input[ "blocknum" ] <= getSpacechainHashes().length ) {all_inputs_are_valid = false;break;}
-                    if ( i_am_mining_this_tx && input[ "blocknum" ] <= getSpacechainHashes().length + 1 ) {all_inputs_are_valid = false;break;}
-                    if ( input.length == 4 && ( !isHex( input[ "burntx" ] ) || input[ "burntx" ].length != 64 ) ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 5 && ( typeof( input[ "blocknum" ] ) != "number" || String( input[ "blocknum" ] ).includes( "." ) ) ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 5 && ( typeof( input[ "tx_index" ] ) != "number" || String( input[ "tx_index" ] ).includes( "." ) ) ) {all_inputs_are_valid = false;break;}
+                    if ( !i_am_mining_this_tx && input[ "blocknum" ] > getSpacechainHashes().length ) {all_inputs_are_valid = false;break;}
+                    if ( i_am_mining_this_tx && input[ "blocknum" ] > getSpacechainHashes().length + 1 ) {all_inputs_are_valid = false;break;}
+                    if ( Object.keys( input ).length == 4 && ( !isHex( input[ "burntx" ] ) || input[ "burntx" ].length != 64 ) ) {all_inputs_are_valid = false;break;}
                     try {
                         var redeem_script = atob( input[ "redeem_script" ] );
                     } catch( e ) {
@@ -1994,12 +1996,12 @@
                         var parent = getSpacechainTxByTxid( txid );
                         if ( !parent ) {all_inputs_are_valid = false;break;}
                         if ( !isValidJson( parent ) ) {all_inputs_are_valid = false;break;}
+                        parent = JSON.parse( parent );
                         if ( !Object.keys( parent ).includes( "outputs" ) ) {all_inputs_are_valid = false;break;}
                         if ( !Array.isArray( parent[ "outputs" ] ) ) {all_inputs_are_valid = false;break;}
                         if ( parent[ "outputs" ].length < input[ "output_index" ] ) {all_inputs_are_valid = false;break;}
                         var output = parent[ "outputs" ][ input[ "output_index" ] ];
-                        if ( !isValidJson( output ) ) {all_inputs_are_valid = false;break;}
-                        if ( output.length != 2 ) {all_inputs_are_valid = false;break;}
+                        if ( Object.keys( output ).length != 2 ) {all_inputs_are_valid = false;break;}
                         if ( !Object.keys( output ).includes( "scripthash" ) ) {all_inputs_are_valid = false;break;}
                         if ( !Object.keys( output ).includes( "value" ) ) {all_inputs_are_valid = false;break;}
                         if ( typeof( output[ "value" ] ) != "number" || String( output[ "value" ] ).includes( "." ) ) {all_inputs_are_valid = false;break;}
@@ -2074,6 +2076,7 @@
                                 if ( Object.keys( transaction ).includes( "wallet" ) ) {
                                     if ( Object.keys( transaction ).includes( "outputs" ) ) {
                                         if ( Object.keys( transaction ).includes( "timelock" ) ) {
+                                            console.log( 0, blocknum );
                                             if ( Object.keys( transaction ).includes( "inputs" ) ) {
                                                 if ( transaction[ "wallet" ] == wallet_identifier ) {
                                                     if ( Array.isArray( transaction[ "outputs" ] ) ) {
@@ -2090,6 +2093,7 @@
                                                                         console.log( "this address once had money, right?", this_address_once_had_money, hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
                                                                         if ( this_address_once_had_money ) {console.log( "ok, then I am noting that not all outputs are valid in the coinbase of this block!", blocknum );all_outputs_are_valid = false;break;}
                                                                     }
+                                                                    console.log( 1 );
                                                                     //make no further checks on scripthashes, anything unique in the spacechain's history is fine
                                                                     //even if it is not a valid spacechain address -- so basically op_returns are fine
                                                                     if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
@@ -2185,8 +2189,11 @@
                 });
                 return output_was_created;
             }
-            async function thisSpacechainAddressHadMoneyBeforeSpaceblock( address, wallet_identifier, spaceblocknum ) {
+            async function thisSpacechainAddressHadMoneyBeforeSpaceblock( address, wallet_identifier, spaceblocknum, i_am_mining_this_tx ) {
                 var had_money = false;
+                //when I am mining one of my own transactions I set the spaceblock number to one above my current blockheight
+                //I need to correct for this
+                if ( i_am_mining_this_tx && spaceblocknum == getSpacechainHashes().length + 1 ) spaceblocknum = spaceblocknum - 1;
                 //get the bitcoin block when the spaceblock was anchored
                 var anchor_txid = spacechain[ spaceblocknum - 1 ][ 2 ];
                 var data = await getData( `https://mempool.space/testnet/api/tx/${anchor_txid}` );
@@ -2366,7 +2373,8 @@
             }
             async function getSecondUnusedSpacechainChangeAddress( backupwords, wallet_identifier ) {
                 var second_unused_address = "";
-                var i; for ( i=0; i<1000000; i++ ) {
+                var index = await getIndexOfFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier );
+                var i; for ( i=index + 1; i<1000000; i++ ) {
                     var path = "295'/0'/1'";
                     var address = getSpacechainAddressFromPath( backupwords, path, i );
                     var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( address, wallet_identifier );
@@ -2447,8 +2455,8 @@
                                 tx[ "outputs" ].every( function( output, index ) {
                                     if ( output[ "scripthash" ] == hex ) {
                                         output_index = index;
-                                        utxo[ "blocknum" ] = unspent.split( ":" )[ 0 ];
-                                        utxo[ "tx_index" ] = unspent.split( ":" )[ 1 ];
+                                        utxo[ "blocknum" ] = Number( unspent.split( ":" )[ 0 ] );
+                                        utxo[ "tx_index" ] = Number( unspent.split( ":" )[ 1 ] );
                                         utxo[ "output_index" ] = index;
                                         txo_found = true;
                                         return;
@@ -2489,7 +2497,26 @@
                         utxo[ "privkey" ] = privkey;
                         utxo[ "pubkey" ] = pubkey;
                         utxo[ "value" ] = additional_balance;
-                        utxo[ "type" ] = "spacetx";
+                        var hex = bech32ToHex( address );
+                        var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                        var txo_found = false;
+                        utxo_set.every( function( unspent ) {
+                            var txid = unspent.split( ":" )[ 0 ] + ":" + unspent.split( ":" )[ 1 ];
+                            var tx = JSON.parse( getSpacechainTxByTxid( txid ) );
+                            tx[ "outputs" ].every( function( output, index ) {
+                                if ( output[ "scripthash" ] == hex ) {
+                                    output_index = index;
+                                    utxo[ "blocknum" ] = Number( unspent.split( ":" )[ 0 ] );
+                                    utxo[ "tx_index" ] = Number( unspent.split( ":" )[ 1 ] );
+                                    utxo[ "output_index" ] = index;
+                                    txo_found = true;
+                                    return;
+                                }
+                                return true;
+                            });
+                            if ( txo_found ) return;
+                            return true;
+                        });
                         my_utxos.push( utxo );
                     }
                     balance = balance + additional_balance;
@@ -3125,6 +3152,7 @@
                 blocks.push( JSON.stringify( ["8bc105a901b4f3cf90844ad38b9cb2aed65415c216bac72d85fee7f11b4f1f9a3ffcf71ea0edc6dc7974ce8966891209f9fa1b9d801488bd26fa654546dc96f7","test1","test2","test3"] ) );
                 blocks.push( JSON.stringify( ["8bedb41c8f641933d6ce74560bf10de286cae64479f18b3ac840cadcd2840836f4a0b4ee854f67f8e9bc96120919913cb341e7d344c8ce8b540a16e7ddd44a4e","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"abababababababababababababababababababab\",\"value\":200}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"burntx\":\"285682de6c6b8ac4ed0a99d90353e7cde12598da4322667b1de6716311483697\",\"output_index\":0,\"value\":700,\"redeem_script\":\"WyIzZmY1M2QwYWI4N2UxNGY0YWZjZThhNGFlMzE3NmFlOTkyN2EzN2FjMmUyODY4ZTVjOTgxYzMwNzY4ZTQ4ZmU2NjFkM2ZmZmIyMzJhMjgxNDI2MzgyMGZmMjJhYWI0ZWJhNTlkMjA0OTEyNzgxYWE5ZTJkMmM3NzI1Y2RhMzQ4ZC1bKl0tWypdIiwiMDMzZDgyMTQ0ZjQ3YjM1NmE3NTVjYzM1ZWIzNjE5MzM5MjNkZmQ3OWEwNTVhNjQ4OWRmYWUzZjdmOTRlYjBlNWRiIiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzMzNTM5MzczNTM0MzkzMTY2NjEzMzY0MzMzODYzNjMzNTMwMzkzNDYzMzk2NDM0MzQzNzYxMzk2NjM0MzMzNTM5MzQzMDM4MzkzMjM2MzIyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\"}],\"outputs\":[{\"scripthash\":\"8b67c10d3688745b5fdd9603e69c1b7e51564960\",\"value\":500}],\"timelock\":1}"] ) );
                 blocks.push( JSON.stringify( ["76ee75c9ed0530b8f9c7f9ac1c0b1acb12388d7459217da9dbe420c7435b9d411ab3db6fb62fd3c626852dfe3f18236f5efda7791c1516afad15a93825b42f55","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"c8553f587df9f6a3d31fafe6ba831ce786a2c3e5\",\"value\":50}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"output_index\":0,\"value\":700,\"redeem_script\":\"WyIxMmEzNDllNzQ0MWVkYjU1YTViNWQzODQwYzg4NTU5ZDc5ZjU3OWU2MzI2YjA2YWVjNWIyNzgyMDY5Y2FmNzczMWVhMWU4Zjc1YmQ2OWQ3MWVlYTA2ZDUxNTFmMmRhMmJlYjZhYWI2MzliYmExNGQ2ZmE4YzJlNzU1MmRiMTNiZi1bKl0tWypdIiwiMDJhOTA4ODA4OTk5Mzk3N2E5YTAyYjE2ZTc2ODMwYWFlZDNlMTQ3OTQ2OTFhMzJlYjM2NzA5MDhiMjEyNTk2Y2NjIiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzQzNTMxMzgzNjMzMzMzMzM4NjQ2MjM5MzQ2NDM0NjEzNTM3MzIzNTYyMzg2NDM5MzczNTY2MzczOTMyNjE2NjYyMzEzNjY0NjQzODM1MzkyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"burntx\":\"84d1825095d649355ae54b117fc0e2bba204f42597ba89bb20d37e8fbaff679c\"}],\"outputs\":[{\"scripthash\":\"3f8fdaccfa851ef7d4d51c348a1f5bfaa88a8a2e\",\"value\":500},{\"scripthash\":\"c8553f587df9f6a3d31fafe6ba831ce786a2c3e5\",\"value\":150}],\"timelock\":1}"] ) );
+                blocks.push( JSON.stringify( ["f59674aec0b33fef27d3216d6c1371daa0d286762d150daa418b8e565ed70b9cb4cdb5d13bff92c472f5736f0830fae044ab1a6a806649b414cf7c7f089c7a4e","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"d88670dcced0b8a39f8a8818aec124eefad04f98\",\"value\":200}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"output_index\":0,\"value\":500,\"redeem_script\":\"WyI2YjQ2ZTk0OTc5NWFjODg1NWVmYWUxYzM5ZjUwNTA0OWJiZDU1ZmM0N2I5YmFlMjVkMWM2NmE0NTVjZDk3N2Q1MmEyOGJkZTI1YzQ1ODdhNjUxYjg4NjMyYTU5YmQ1Zjk4MzQ2YzExY2E3N2EwZWRmOGQ4OTkxNTc2ZWZiMWIwNy1bKl0tWypdIiwiMDJhZDJmYjExMzNkMzIwMjhjNDZhMzczOTA0ZjIwMzQyOWVlNDM1ZDRjYWYxNmNiYmU2ZDFjYjNjYTczMjAyZjU1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyNjI2NjM3Mzk2NDM4MzczMDMzNjYzMTM0MzM2MjMwNjI2NTMyNjMzNTM3NjYzODY1MzI2NDM2MzkzMTMxNjY2NjM5NjY2NDM1MzkzNTMwMzMyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1},{\"output_index\":1,\"value\":150,\"redeem_script\":\"WyI1NzBlMmFkNWFkYmJhYTAzOTU5NzkwOThiOTc1ZGQxNzZjZjk0MzEwNzY1ZGNhM2RjZWMwNjFlNjViMjI4YjA1NTQ2YTdiNWViYTQ2ZDU5NTNjNWZhNjcyM2E3MzNkYmYzNzcwNGJjZTkwYjg0MTlkYTk2NmM1MTU1N2U3YTU4ZS1bKl0tWypdIiwiMDM3ZDkyZGE2N2Q1N2Q3YTA4ZmJiNGQyNjRjZTc4YTVjYzVlZmYyZjkzNDViNzJiMDQ4YTFiYTllOTc1Yjg3MGY1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzA2NDMwMzIzMjYzNjI2NDM5NjQzMDMyMzMzMTY0NjYzOTMzNjYzMjM2NjYzMzYzMzA2NDM4NjUzMzMxNjY2NjMzMzczOTM1NjMzMzYxNjEyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1}],\"outputs\":[{\"scripthash\":\"ad545e233c4304e8eb85b4e7f582264bca4bdaaa\",\"value\":600},{\"scripthash\":\"0c61a4d5599b8690f14d391d3db65256b29b9fd2\",\"value\":-150}],\"timelock\":1}"] ) );
                 if ( ( $_GET[ "syncfast" ] || $_GET[ "fastsync" ] ) && typeof( num_or_hash ) && num_or_hash <= blocks.length + 1 ) {
                     processBlock( blocks[ num_or_hash - 1 ] );
                     return;
@@ -3550,7 +3578,7 @@
                                 mycoinbase_prep[ "wallet" ] = wallet_identifier;
                                 mycoinbase_prep[ "inputs" ] = [];
                                 var outputs = [];
-                                var addy = await getFirstUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
+                                var addy = await getSecondUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
                                 var scripthash = bech32ToHex( addy );
                                 outputs.push( {"scripthash":scripthash,"value":sum_of_all_inputs - sum_of_all_outputs} );
                                 mycoinbase_prep[ "outputs" ] = outputs;
@@ -3759,13 +3787,14 @@
                     amount_reached = amount_reached + utxo[ "value" ];
                     var input = {}
                     input[ "output_index" ] = utxo[ "output_index" ];
+                    console.log( "input:", input, "utxo:", utxo );
                     input[ "value" ] = utxo[ "value" ];
                     input[ "redeem_script" ] = "";
                     if ( utxo[ "burntx" ] ) {
                         input[ "burntx" ] = utxo[ "burntx" ];
                     } else {
-                        input[ "blocknum" ] = utxo[ "blocknum" ];
-                        input[ "tx_index" ] = utxo[ "tx_index" ];
+                        input[ "blocknum" ] = Number( utxo[ "blocknum" ] );
+                        input[ "tx_index" ] = Number( utxo[ "tx_index" ] );
                     }
                     inputs.push( input );
                     if ( amount_reached >= to_amount + fee_amount ) return;
@@ -3777,7 +3806,11 @@
                     "value": to_amount
                 }
                 outputs.push( output_1 );
-                var change_amount = inputs[ 0 ][ "value" ] - ( outputs[ 0 ][ "value" ] + fee_amount );
+                var sum_of_all_inputs = 0;
+                inputs.forEach( function( input ) {
+                    sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                });
+                var change_amount = sum_of_all_inputs - ( outputs[ 0 ][ "value" ] + fee_amount );
                 if ( change_amount ) {
                     var change_address = await getFirstUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
                     var output_2 = {
