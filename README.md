@@ -7,6 +7,8 @@ Go here: https://supertestnet.github.io/spacechain-launcher/
 
 # What works
 
+Creating a spacechain works (yay!).
+
 The governance mechanism seems to work. Spaceblocks are created by hashing some data and committing that hash to bitcoin's blockchain. Client software comes to consensus on the order of transactions by observing the order in which spaceblock hashes are committed. Spaceblocks themselves are distributed out of band through a seemingly peer to peer (but actually not) method: nostr dms.
 
 The script address for anchor outputs seems to work. It's an anyone-can-spend address. Spacechain miners are expected to use fee bidding to compete with one another to move that utxo and, in moving it, commit the hash of a new spaceblock to bitcoin's blockchain. If someone steals the anchor output, that is detectable because the output won't go right back into the anyone-can-spend address (if it did, it wouldn't be a theft, because you could just keep building on top of it by moving it again), and at that point miners can bid to make a new anyone-can-spend utxo. The first anchor utxo to make it into the blockchain and commit a new spaceblock wins and is, by consensus, the new anchor utxo that everyone else must build on top of.
