@@ -125,6 +125,8 @@
             var url_keys = url_params.keys()
             var $_GET = {}
             var spacechain = [];
+            var last_block_synced = 0;
+            var sync_in_progress = false;
             if ( localStorage[ "spacechain" ] ) {
                 spacechain = JSON.parse( localStorage[ "spacechain" ] );
             }
@@ -538,8 +540,6 @@
                       ]),
                     }
                   });
-                  console.log( "First branch witness stack:" )
-                  console.log( witnessStackClaimBranch.witness.map( x => x.toString( "hex" ) ) )
                   return {
                     finalScriptWitness: witnessStackToScriptWitness( witnessStackClaimBranch.witness )
                   }
@@ -597,8 +597,6 @@
                       ]),
                     }
                   });
-                  console.log( "First branch witness stack:" )
-                  console.log( witnessStackClaimBranch.witness.map( x => x.toString( "hex" ) ) )
                   return {
                     finalScriptWitness: witnessStackToScriptWitness( witnessStackClaimBranch.witness )
                   }
@@ -622,8 +620,6 @@
                       ]),
                     }
                   });
-                  console.log( "First branch witness stack:" )
-                  console.log( witnessStackClaimBranch.witness.map( x => x.toString( "hex" ) ) )
                   return {
                     finalScriptWitness: witnessStackToScriptWitness( witnessStackClaimBranch.witness )
                   }
@@ -676,8 +672,6 @@
                       ]),
                     }
                   });
-                  console.log( "First branch witness stack:" )
-                  console.log( witnessStackClaimBranch.witness.map( x => x.toString( "hex" ) ) )
                   return {
                     finalScriptWitness: witnessStackToScriptWitness( witnessStackClaimBranch.witness )
                   }
@@ -1451,17 +1445,7 @@
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
                             if ( $_GET[ "wallet_id" ] ) {
-                                var wallet_identifier = $_GET[ "wallet_id" ];
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                             }
                             return;
                         }
@@ -1511,17 +1495,7 @@
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
                             if ( $_GET[ "wallet_id" ] ) {
-                                var wallet_identifier = $_GET[ "wallet_id" ];
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                             }
                             return;
                         }
@@ -1556,18 +1530,7 @@
                         spacechain.every( function( block, index ) {
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                                 if ( $_GET[ "wallet_id" ] ) {
-                                    var wallet_identifier = $_GET[ "wallet_id" ];
-                                    spacechain.length = index;
-                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                    utxo_set.forEach( function( utxo, num ) {
-                                        var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                        if ( num_it_starts_with > index ) {
-                                            working_utxo_set.slice( num, 1 );
-                                        }
-                                    });
-                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                    adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                                 }
                                 return;
                             }
@@ -1588,17 +1551,7 @@
                             if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                                 spacechain.length = index;
                                 if ( $_GET[ "wallet_id" ] ) {
-                                    var wallet_identifier = $_GET[ "wallet_id" ];
-                                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                    var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                    utxo_set.forEach( function( utxo, num ) {
-                                        var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                        if ( num_it_starts_with > index ) {
-                                            working_utxo_set.slice( num, 1 );
-                                        }
-                                    });
-                                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                    adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                                 }
                                 return;
                             }
@@ -1623,17 +1576,7 @@
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
                             if ( $_GET[ "wallet_id" ] ) {
-                                var wallet_identifier = $_GET[ "wallet_id" ];
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                             }
                             return;
                         }
@@ -1654,17 +1597,7 @@
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
                             if ( $_GET[ "wallet_id" ] ) {
-                                var wallet_identifier = $_GET[ "wallet_id" ];
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                             }
                             return;
                         }
@@ -1694,17 +1627,7 @@
                         if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                             spacechain.length = index;
                             if ( $_GET[ "wallet_id" ] ) {
-                                var wallet_identifier = $_GET[ "wallet_id" ];
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                utxo_set.forEach( function( utxo, num ) {
-                                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                    if ( num_it_starts_with > index ) {
-                                        working_utxo_set.slice( num, 1 );
-                                    }
-                                });
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                                adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                             }
                             return;
                         }
@@ -1725,17 +1648,7 @@
                     if ( block[ 2 ] != anchor_utxos_in_my_spacechain[ index ] ) {
                         spacechain.length = index;
                         if ( $_GET[ "wallet_id" ] ) {
-                            var wallet_identifier = $_GET[ "wallet_id" ];
-                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                            var working_utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                            utxo_set.forEach( function( utxo, num ) {
-                                var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
-                                if ( num_it_starts_with > index ) {
-                                    working_utxo_set.slice( num, 1 );
-                                }
-                            });
-                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( working_utxo_set );
+                            adjustUtxoSet( false, $_GET[ "wallet_id" ], index );
                         }
                         return;
                     }
@@ -1942,7 +1855,6 @@
                     //even if it is not a valid spacechain address -- so basically op_returns are fine
                     if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
                     if ( typeof( output[ "value" ] ) != "number" || String( output[ "value" ] ).includes( "." ) ) {all_outputs_are_valid = false;break;}
-                    console.log( output[ "value" ], output[ "value" ] < 0 );
                     if ( output[ "value" ] < 0 ) {all_outputs_are_valid = false;break;}
                 }
                 if ( !all_outputs_are_valid ) return;
@@ -2041,25 +1953,31 @@
             }
             async function getFeesPaidByBlock( block, wallet_identifier, blocknum ) {
                 var fees = 0;
-                var i; for ( i=0; i<block.length; i++ ) {
+                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                    var utxo_set = [];
+                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                } else {
+                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                }
+                var good_transactions = [];
+                var i; for ( i=0; i<utxo_set.length; i++ ) {
+                    var utxo = utxo_set[ i ];
+                    if ( Number( utxo.split( ":" )[ 0 ] ) == blocknum && !good_transactions.includes( Number( utxo.split( ":" )[ 1 ] ) ) ) good_transactions.push( Number( utxo.split( ":" )[ 1 ] ) );
+                }
+                var i; for ( i=0; i<good_transactions.length; i++ ) {
                     var index = i;
-                    var transaction = block[ i ];
-                    if ( index ) {
-                        var tx_is_good = await transactionIsValidWalletTx( transaction, false, wallet_identifier, blocknum, index - 1, true );
-                        if ( tx_is_good ) {
-                            transaction = JSON.parse( transaction );
-                            var sum_of_all_outputs = 0;
-                            transaction[ "outputs" ].forEach( function( output ) {
-                                sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
-                            });
-                            var sum_of_all_inputs = 0;
-                            transaction[ "inputs" ].forEach( function( input ) {
-                                sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
-                            });
-                            var fee = sum_of_all_inputs - sum_of_all_outputs;
-                            fees = fees + fee;
-                        }
-                    }
+                    var transaction = getSpacechainTxByTxid( String( blocknum ) + ":" + String( good_transactions[ i ] ) );
+                    transaction = JSON.parse( transaction );
+                    var sum_of_all_outputs = 0;
+                    transaction[ "outputs" ].forEach( function( output ) {
+                        sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                    });
+                    var sum_of_all_inputs = 0;
+                    transaction[ "inputs" ].forEach( function( input ) {
+                        sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                    });
+                    var fee = sum_of_all_inputs - sum_of_all_outputs;
+                    fees = fees + fee;
                 }
                 return fees;
             }
@@ -2076,7 +1994,6 @@
                                 if ( Object.keys( transaction ).includes( "wallet" ) ) {
                                     if ( Object.keys( transaction ).includes( "outputs" ) ) {
                                         if ( Object.keys( transaction ).includes( "timelock" ) ) {
-                                            console.log( 0, blocknum );
                                             if ( Object.keys( transaction ).includes( "inputs" ) ) {
                                                 if ( transaction[ "wallet" ] == wallet_identifier ) {
                                                     if ( Array.isArray( transaction[ "outputs" ] ) ) {
@@ -2090,10 +2007,9 @@
                                                                     //disallow sending money to the same address twice
                                                                     if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
                                                                         var this_address_once_had_money = await thisSpacechainAddressHadMoneyBeforeSpaceblock( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier, blocknum );
-                                                                        console.log( "this address once had money, right?", this_address_once_had_money, hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
+                                                                        console.log( "this address once had money, right?", !!this_address_once_had_money, hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
                                                                         if ( this_address_once_had_money ) {console.log( "ok, then I am noting that not all outputs are valid in the coinbase of this block!", blocknum );all_outputs_are_valid = false;break;}
                                                                     }
-                                                                    console.log( 1 );
                                                                     //make no further checks on scripthashes, anything unique in the spacechain's history is fine
                                                                     //even if it is not a valid spacechain address -- so basically op_returns are fine
                                                                     if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
@@ -2141,12 +2057,13 @@
             async function thisSpacechainAddressOnceHadMoney( address, wallet_identifier ) {
                 var hex = bech32ToHex( address );
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
-                console.log( "queried" );
-                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
-                var response = await getData( url );
-                if ( !isValidJson( response ) ) console.log( response );
-                response = JSON.parse( response );
-                if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) console.log( response );
+                // console.log( "queried" );
+                // var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                // var response = await getData( url );
+                // if ( !isValidJson( response ) ) console.log( response );
+                // response = JSON.parse( response );
+                // if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) console.log( response );
+                var response = await querier( op_return );
                 if ( response && response[ "data" ] && response[ "data" ].length ) return true;
                 //check if any valid transaction in my spacechain's history created an output where that address was the scripthash
                 //to do that, start with an array of the transactions in my utxo set
@@ -2210,11 +2127,12 @@
                 //check if the address was op_returned before that bitcoin block
                 var hex = bech32ToHex( address );
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
-                console.log( "queried" );
-                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
-                var response = await getData( url );
-                if ( !isValidJson( response ) ) console.log( response );
-                response = JSON.parse( response );
+                // console.log( "queried" );
+                // var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                // var response = await getData( url );
+                // if ( !isValidJson( response ) ) console.log( response );
+                // response = JSON.parse( response );
+                var response = await querier( op_return );
                 if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) {
                     console.log( response );
                     alert( "You hit the api limit for blockchair's free api.\n\nProbably because, every five seconds, your wallet queries their api about each of your used spacechain addresses to see if there is an op_return on bitcoin that sent them some money.\n\nWait a few minutes before you hit okay and you should be good for another minute or so.\n\nIf this error gets so annoying you are about to scream, ask a developer for help hooking this up to your own node so you don't have to use a permissioned, rate-limited service like blockchair.\n\nYou can also add this to your url to increase the wait time before querying blockchair's api: &number_of_seconds_to_wait_before_rechecking_balance=60\n\nBut be aware it won't work super well if you've made a lot of transactions because it will still make a ton of queries, it will just wait a bit before doing so, and so you will still probably go over blockchair's rate limit." );
@@ -2324,11 +2242,12 @@
                 //if there is no balance according to the spacechain,
                 //check if there was ever a balance according to bitcoin's blockchain
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
-                console.log( "queried" );
-                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
-                var response = await getData( url );
-                if ( !isValidJson( response ) ) console.log( response );
-                response = JSON.parse( response );
+                // console.log( "queried" );
+                // var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                // var response = await getData( url );
+                // if ( !isValidJson( response ) ) console.log( response );
+                // response = JSON.parse( response );
+                var response = await querier( op_return );
                 if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) {
                     console.log( response );
                     return "error";
@@ -2425,6 +2344,7 @@
                 return is_spent;
             }
             async function getSpacechainBalance( backupwords, wallet_identifier ) {
+                if ( sync_in_progress ) return;
                 var balance = 0;
                 var my_utxos = [];
                 var index_of_first_unused_address = await getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier );
@@ -2465,10 +2385,11 @@
                             });
                         } else {
                             var op_return = "6a34" + hex + $_GET[ "chain" ];
-                            console.log( "queried" );
-                            var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
-                            var response = await getData( url );
-                            response = JSON.parse( response );
+                            // console.log( "queried" );
+                            // var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                            // var response = await getData( url );
+                            // response = JSON.parse( response );
+                            var response = await querier( op_return );
                             if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] || !response[ "data" ].length ) {
                                 console.log( response );
                                 alert( "You hit the api limit for blockchair's free api.\n\nProbably because, every five seconds, your wallet queries their api about each of your used spacechain addresses to see if there is an op_return on bitcoin that sent them some money.\n\nWait a few minutes before you hit okay and you should be good for another minute or so.\n\nIf this error gets so annoying you are about to scream, ask a developer for help hooking this up to your own node so you don't have to use a permissioned, rate-limited service like blockchair.\n\nYou can also add this to your url to increase the wait time before querying blockchair's api: &number_of_seconds_to_wait_before_rechecking_balance=60\n\nBut be aware it won't work super well if you've made a lot of transactions because it will still make a ton of queries, it will just wait a bit before doing so, and so you will still probably go over blockchair's rate limit." );
@@ -2566,24 +2487,7 @@
                     spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                     if ( $_GET[ "wallet_id" ] ) {
-                        var i; for ( i=0; i<claimed_block.length; i++ ) {
-                            var index = i;
-                            var tx = claimed_block[ i ];
-                            if ( !index ) continue;
-                            var wallet_identifier = $_GET[ "wallet_id" ];
-                            var blocknum = getSpacechainHashes().length;
-                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
-                        }
-                        var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                        if ( coinbase > -1 ) {
-                            var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
-                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                            if ( !utxo_set.includes( txid_plus_output_number ) ) {
-                                utxo_set.push( txid_plus_output_number );
-                            }
-                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
-                        }
+                        adjustUtxoSet( claimed_block, $_GET[ "wallet_id" ], getSpacechainHashes().length );
                     }
                     requestBlock( getSpacechainHashes().length + 1 );
                     return;
@@ -2596,24 +2500,7 @@
                     spacechain.push([ block_hash, JSON.stringify( claimed_block ), claimed_anchor_tx ]);
                     localStorage[ "spacechain" ] = JSON.stringify( spacechain );
                     if ( $_GET[ "wallet_id" ] ) {
-                        var i; for ( i=0; i<claimed_block.length; i++ ) {
-                            var index = i;
-                            var tx = claimed_block[ i ];
-                            if ( !index ) continue;
-                            var wallet_identifier = $_GET[ "wallet_id" ];
-                            var blocknum = getSpacechainHashes().length;
-                            await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
-                        }
-                        var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
-                        if ( coinbase > -1 ) {
-                            var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
-                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
-                            var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                            if ( !utxo_set.includes( txid_plus_output_number ) ) {
-                                utxo_set.push( txid_plus_output_number );
-                            }
-                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
-                        }
+                        adjustUtxoSet( claimed_block, $_GET[ "wallet_id" ], getSpacechainHashes().length );
                     }
                     requestBlock( getSpacechainHashes().length + 1 );
                     return;
@@ -2628,6 +2515,128 @@
                     //resync chain
                     syncChain();
                 }
+            }
+            var queryqueue = [];
+            var responsequeue = [];
+            var prev_query = 0;
+            var prev_504 = 0;
+            async function querier( op_return ) {
+                //I want this function to continuously add requests to a queue,
+                //get the length of the current queue, process your request
+                //after waiting 2 seconds multiplied by the length of the
+                //queue, return the result, and then reduce the size of the
+                //queue by 1
+                //I should only make a request to blockchair every 2 seconds
+                //because the free api is limited to 30 requests per minute
+                var existing_response;
+                responsequeue.forEach( function( response, index ) {
+                    var copy_of_response_queue = JSON.parse( JSON.stringify( responsequeue ) );
+                    //remove responses older than 5 seconds
+                    if ( response[ 2 ] < Math.floor( Date.now() / 1000 ) - 5 ) {
+                        copy_of_response_queue.splice( index, 1 );
+                    }
+                    responsequeue = JSON.parse( JSON.stringify( copy_of_response_queue ) );
+                });
+                //for the remaining responses, if a response exists to a query I just made,
+                //return it without making a new request
+                responsequeue.every( function( response, index ) {
+                    if ( response[ 0 ] == op_return ) {
+                        existing_response = response[ 1 ];
+                        return;
+                    }
+                    return true;
+                });
+                if ( existing_response ) {
+                    return existing_response;
+                }
+                //otherwise make a new response
+                if ( !queryqueue.includes( op_return ) ) {queryqueue.push( op_return );}
+                var response = await repeatQueryTilGood( op_return );
+                var response_for_response_queue = [];
+                response_for_response_queue.push( op_return, response, Math.floor( Date.now() / 1000 ) );
+                responsequeue.push( response_for_response_queue );
+                return response;
+            }
+            async function repeatQueryTilGood( op_return ) {
+                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                if ( prev_query > Math.floor( Date.now() / 1000 ) - 2 ) {
+                    if ( prev_504 > Math.floor( Date.now() / 1000 ) - 10 ) {
+                        await waitSomeSeconds( 10 );
+                    } else {
+                        await waitSomeSeconds( 2 );
+                    }
+                    var response = await repeatQueryTilGood( op_return );
+                    return response;
+                }
+                prev_query = Math.floor( Date.now() / 1000 );
+                var response = await getData( url );
+                if ( !isValidJson( response ) ) {
+                    if ( response.indexOf( "504 Gateway Time-out" ) > -1 ) {
+                        console.log( "Oh no, 504!" );
+                        prev_504 = Math.floor( Date.now() / 1000 );
+                    }
+                    console.log( "retrying in 5 seconds because response was not valid json:", response );
+                    await waitSomeSeconds( 5 );
+                    response = await repeatQueryTilGood( op_return );
+                } else {
+                    response = JSON.parse( response );
+                    if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) {
+                        console.log( "retrying in 5 seconds because response was unexpected:", response );
+                        await waitSomeSeconds( 5 );
+                        response = await repeatQueryTilGood( op_return );
+                    }
+                }
+                return response;
+            }
+            async function adjustUtxoSet( claimed_block, wallet_identifier, blocknum ) {
+                console.log( "I am asked to adjust the utxo set using data from block", blocknum );
+                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                    var utxo_set = [];
+                } else {
+                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                }
+                var working_utxo_set = JSON.parse( JSON.stringify( utxo_set ) );
+                utxo_set.forEach( function( utxo, index ) {
+                    var num_it_starts_with = Number( utxo.split( ":" )[ 0 ] );
+                    if ( num_it_starts_with > blocknum ) {
+                        working_utxo_set.slice( index, 1 );
+                    }
+                });
+                utxo_set = JSON.parse( JSON.stringify( working_utxo_set) );
+                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                if ( !claimed_block ) {
+                    last_block_synced = blocknum;
+                    return;
+                }
+                if ( sync_in_progress ) {
+                    console.log( "I will not adjust the utxo set using data from block", blocknum, "because an adjustment is already in progress using data from block", last_block_synced + 1 );
+                    return;
+                }
+                sync_in_progress = true;
+                console.log( "I will now adjust the utxo set using data from block", blocknum );
+                var i; for ( i=0; i<claimed_block.length; i++ ) {
+                    var index = i;
+                    var tx = claimed_block[ i ];
+                    if ( !index ) continue;
+                    console.log( `tx ${index} in block ${blocknum}:`, tx );
+                    var tx_is_valid = await transactionIsValidWalletTx( tx, false, wallet_identifier, blocknum, index - 1 );
+                    console.log( `tx ${index} in block ${blocknum} is valid, right?`, !!tx_is_valid );
+                }
+                var coinbase = await getCoinbaseFromBlock( claimed_block, wallet_identifier, blocknum );
+                console.log( `coinbase for block ${blocknum}:`, coinbase );
+                if ( coinbase > -1 ) {
+                    var txid_plus_output_number = blocknum + ":" + coinbase + ":0";
+                    if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) return;
+                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
+                    if ( !utxo_set.includes( txid_plus_output_number ) ) {
+                        utxo_set.push( txid_plus_output_number );
+                    }
+                    localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                }
+                console.log( "done adjusting the utxo set using data from block", blocknum );
+                console.log( "here is the new utxo set:", JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] ) );
+                last_block_synced = blocknum;
+                sync_in_progress = false;
             }
             //end of spacechain functions
             //pegzone functions
@@ -3151,7 +3160,7 @@
                 blocks.push( JSON.stringify( ["76ee75c9ed0530b8f9c7f9ac1c0b1acb12388d7459217da9dbe420c7435b9d411ab3db6fb62fd3c626852dfe3f18236f5efda7791c1516afad15a93825b42f55","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"c8553f587df9f6a3d31fafe6ba831ce786a2c3e5\",\"value\":50}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"output_index\":0,\"value\":700,\"redeem_script\":\"WyIxMmEzNDllNzQ0MWVkYjU1YTViNWQzODQwYzg4NTU5ZDc5ZjU3OWU2MzI2YjA2YWVjNWIyNzgyMDY5Y2FmNzczMWVhMWU4Zjc1YmQ2OWQ3MWVlYTA2ZDUxNTFmMmRhMmJlYjZhYWI2MzliYmExNGQ2ZmE4YzJlNzU1MmRiMTNiZi1bKl0tWypdIiwiMDJhOTA4ODA4OTk5Mzk3N2E5YTAyYjE2ZTc2ODMwYWFlZDNlMTQ3OTQ2OTFhMzJlYjM2NzA5MDhiMjEyNTk2Y2NjIiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzQzNTMxMzgzNjMzMzMzMzM4NjQ2MjM5MzQ2NDM0NjEzNTM3MzIzNTYyMzg2NDM5MzczNTY2MzczOTMyNjE2NjYyMzEzNjY0NjQzODM1MzkyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"burntx\":\"84d1825095d649355ae54b117fc0e2bba204f42597ba89bb20d37e8fbaff679c\"}],\"outputs\":[{\"scripthash\":\"3f8fdaccfa851ef7d4d51c348a1f5bfaa88a8a2e\",\"value\":500},{\"scripthash\":\"c8553f587df9f6a3d31fafe6ba831ce786a2c3e5\",\"value\":150}],\"timelock\":1}"] ) );
                 blocks.push( JSON.stringify( ["f59674aec0b33fef27d3216d6c1371daa0d286762d150daa418b8e565ed70b9cb4cdb5d13bff92c472f5736f0830fae044ab1a6a806649b414cf7c7f089c7a4e","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"d88670dcced0b8a39f8a8818aec124eefad04f98\",\"value\":200}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"output_index\":0,\"value\":500,\"redeem_script\":\"WyI2YjQ2ZTk0OTc5NWFjODg1NWVmYWUxYzM5ZjUwNTA0OWJiZDU1ZmM0N2I5YmFlMjVkMWM2NmE0NTVjZDk3N2Q1MmEyOGJkZTI1YzQ1ODdhNjUxYjg4NjMyYTU5YmQ1Zjk4MzQ2YzExY2E3N2EwZWRmOGQ4OTkxNTc2ZWZiMWIwNy1bKl0tWypdIiwiMDJhZDJmYjExMzNkMzIwMjhjNDZhMzczOTA0ZjIwMzQyOWVlNDM1ZDRjYWYxNmNiYmU2ZDFjYjNjYTczMjAyZjU1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyNjI2NjM3Mzk2NDM4MzczMDMzNjYzMTM0MzM2MjMwNjI2NTMyNjMzNTM3NjYzODY1MzI2NDM2MzkzMTMxNjY2NjM5NjY2NDM1MzkzNTMwMzMyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1},{\"output_index\":1,\"value\":150,\"redeem_script\":\"WyI1NzBlMmFkNWFkYmJhYTAzOTU5NzkwOThiOTc1ZGQxNzZjZjk0MzEwNzY1ZGNhM2RjZWMwNjFlNjViMjI4YjA1NTQ2YTdiNWViYTQ2ZDU5NTNjNWZhNjcyM2E3MzNkYmYzNzcwNGJjZTkwYjg0MTlkYTk2NmM1MTU1N2U3YTU4ZS1bKl0tWypdIiwiMDM3ZDkyZGE2N2Q1N2Q3YTA4ZmJiNGQyNjRjZTc4YTVjYzVlZmYyZjkzNDViNzJiMDQ4YTFiYTllOTc1Yjg3MGY1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzA2NDMwMzIzMjYzNjI2NDM5NjQzMDMyMzMzMTY0NjYzOTMzNjYzMjM2NjYzMzYzMzA2NDM4NjUzMzMxNjY2NjMzMzczOTM1NjMzMzYxNjEyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1}],\"outputs\":[{\"scripthash\":\"ad545e233c4304e8eb85b4e7f582264bca4bdaaa\",\"value\":600},{\"scripthash\":\"0c61a4d5599b8690f14d391d3db65256b29b9fd2\",\"value\":-150}],\"timelock\":1}"] ) );
                 blocks.push( JSON.stringify( ["763222e9fa5b48426f6f1cb7753709e765838065c9367c1b7f7650ede4ade1c138cb3d444c32ef0c37020fb6c922ae26bd033d2dc3bec22c290349e356456038","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[],\"outputs\":[{\"scripthash\":\"d88670dcced0b8a39f8a8818aec124eefad04f98\",\"value\":50}],\"timelock\":1}","{\"wallet\":\"5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be\",\"inputs\":[{\"output_index\":0,\"value\":500,\"redeem_script\":\"WyIxZDgxMmZlNzE2MWVlYzZiN2ZlMjE5ZWVkYTU4ZmM2MzZjMWE3MmYzMDNkZmZjYmQ2N2ZiZWEzYWUwYjUwNTdhMDYxODY1YWZlOGNiNjU3NzNmZDY5OTViNjc2NjU2YWU2OGEwMDU2ODc2OWNhMTY1NWY2Y2VhMTk2MmNjZjgyMS1bKl0tWypdIiwiMDJhZDJmYjExMzNkMzIwMjhjNDZhMzczOTA0ZjIwMzQyOWVlNDM1ZDRjYWYxNmNiYmU2ZDFjYjNjYTczMjAyZjU1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyNjI2NjM3Mzk2NDM4MzczMDMzNjYzMTM0MzM2MjMwNjI2NTMyNjMzNTM3NjYzODY1MzI2NDM2MzkzMTMxNjY2NjM5NjY2NDM1MzkzNTMwMzMyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1},{\"output_index\":1,\"value\":150,\"redeem_script\":\"WyI1YjVlZDIzZGExYTQxZjczYmU5MzMyMWI3MDMxMjc2ZDU2MzBkOGUzZDc4YWY1MzAyMDQ2NzVkNTZmMjg3N2FhN2Q3NDhhYTdkZDY1ZTAwYmI5M2Y1YmMyOWIxMWI0ZmM4YmIxOGJjNTczMjBhMzdmNTRjZDNkNTM1YWNhNjM4ZS1bKl0tWypdIiwiMDM3ZDkyZGE2N2Q1N2Q3YTA4ZmJiNGQyNjRjZTc4YTVjYzVlZmYyZjkzNDViNzJiMDQ4YTFiYTllOTc1Yjg3MGY1IiwiNWIyMjRmNTA1ZjQ0NTU1MDIyMmMyMjRmNTA1ZjQ4NDE1MzQ4MzEzNjMwMjIyYzIyMzA2NDMwMzIzMjYzNjI2NDM5NjQzMDMyMzMzMTY0NjYzOTMzNjYzMjM2NjYzMzYzMzA2NDM4NjUzMzMxNjY2NjMzMzczOTM1NjMzMzYxNjEyMjJjMjI0ZjUwNWY0NTUxNTU0MTRjNTY0NTUyNDk0NjU5MjIyYzIyNGY1MDVmNDM0ODQ1NDM0YjUzNDk0NzIyNWQiXQ==\",\"blocknum\":8,\"tx_index\":1}],\"outputs\":[{\"scripthash\":\"ad545e233c4304e8eb85b4e7f582264bca4bdaaa\",\"value\":600}],\"timelock\":1}"] ) );
-                if ( ( $_GET[ "syncfast" ] || $_GET[ "fastsync" ] ) && typeof( num_or_hash ) && num_or_hash <= blocks.length + 1 ) {
+                if ( $_GET[ "fastsync" ] && typeof( num_or_hash ) && num_or_hash <= blocks.length + 1 ) {
                     processBlock( blocks[ num_or_hash - 1 ] );
                     return;
                 }
@@ -3215,12 +3224,13 @@
             }
             async function syncChain() {
                 if ( !$_GET[ "chain" ] ) return;
+                if ( $_GET[ "fastsync" ] ) requestBlock( getSpacechainHashes().length + 1 );
                 //console.log( "started syncing headers..." );
                 await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
                 //console.log( "almost done syncing headers..." );
                 await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
                 //console.log( "syncing chain!" );
-                if ( !!myminers.length || !$[ "syncfast" ] ) requestBlock( getSpacechainHashes().length + 1 );
+                if ( !!myminers.length || !$_GET[ "fastsync" ] ) requestBlock( getSpacechainHashes().length + 1 );
             }
             function checkHeartbeat( num ) {
                 if ( socket && socket.readyState == 3 ) {
@@ -3230,7 +3240,11 @@
                     socket.addEventListener( 'message', handleMessage );
                     socket.addEventListener( 'open', openConnection );
                 }
-                //every 5 seconds, get the spacechain's balance
+                //every 5 seconds, sync the utxo set
+                if ( $_GET[ "wallet_id" ] && num % 10 == 0 && getSpacechainHashes().length > last_block_synced ) {
+                    adjustUtxoSet( JSON.parse( spacechain[ last_block_synced ][ 1 ] ), $_GET[ "wallet_id" ], last_block_synced + 1 );
+                }
+                //every 15 seconds, get the spacechain's balance
                 var wallet_identifier = $_GET[ "wallet_id" ];
                 var double_the_number_of_seconds_to_wait = 30;
                 if ( $_GET[ "number_of_seconds_to_wait_before_rechecking_balance" ] ) double_the_number_of_seconds_to_wait = Number( $_GET[ "number_of_seconds_to_wait_before_rechecking_balance" ] ) * 2;
@@ -3549,68 +3563,66 @@
                 var userdata = JSON.parse( sessionStorage[ "userdata" ] );
                 //if the transaction pretends to be a coinbase, ignore it
                 if ( isValidJson( msg ) && Object.keys( JSON.parse( msg ) ).includes( "inputs" ) && Array.isArray( JSON.parse( msg )[ "inputs" ] ) && !JSON.parse( msg )[ "inputs" ].length ) return;
-                if ( sessionStorage[ "mining" ] ) {
-                    if ( $_GET[ "wallet_id" ] ) {
-                        //without adding its transactions to the utxo set, check if the transaction is valid
-                        var wallet_identifier = $_GET[ "wallet_id" ];
-                        var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
-                        //ignore the transaction if it is no good, otherwise continue
-                        if ( tx_is_good ) {
-                            var transaction = JSON.parse( msg );
-                            //ensure the value matches the difference between the inputs minus the outputs
-                            var sum_of_all_outputs = 0;
-                            transaction[ "outputs" ].forEach( function( output ) {
-                                sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
-                            });
-                            var sum_of_all_inputs = 0;
-                            transaction[ "inputs" ].forEach( function( input ) {
-                                sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
-                            });
-                            var my_fee = sum_of_all_inputs - sum_of_all_outputs;
-                            //if the transaction does not pay you, do not mine it
-                            if ( !my_fee ) return;
-                            //check if the current block has a coinbase transaction for this wallet that pays me
-                            if ( sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] == "[]" ) {
-                                //if it does not, add that first, then add this transaction
-                                var mycoinbase_prep = {}
-                                mycoinbase_prep[ "wallet" ] = wallet_identifier;
-                                mycoinbase_prep[ "inputs" ] = [];
-                                var outputs = [];
-                                var addy = await getSecondUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
-                                var scripthash = bech32ToHex( addy );
-                                outputs.push( {"scripthash":scripthash,"value":sum_of_all_inputs - sum_of_all_outputs} );
-                                mycoinbase_prep[ "outputs" ] = outputs;
-                                mycoinbase_prep[ "timelock" ] = 1;
-                                var mycoinbase = JSON.stringify( mycoinbase_prep );
-                                sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = mycoinbase;
-                                userdata.push( mycoinbase );
-                                sessionStorage[ "userdata" ] = JSON.stringify( userdata );
-                                //add the new utxos to your utxo set
-                                if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
-                                    var utxo_set = [];
-                                } else {
-                                    var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
-                                }
-                                var index_of_coinbase = userdata.indexOf( mycoinbase );
-                                if ( !utxo_set.includes( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" ) ) {
-                                    utxo_set.push( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" );
-                                }
-                                localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
-                                await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
+                if ( sessionStorage[ "mining" ] && $_GET[ "wallet_id" ] ) {
+                    //without adding its transactions to the utxo set, check if the transaction is valid
+                    var wallet_identifier = $_GET[ "wallet_id" ];
+                    var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
+                    //ignore the transaction if it is no good, otherwise continue
+                    if ( tx_is_good ) {
+                        var transaction = JSON.parse( msg );
+                        //ensure the value matches the difference between the inputs minus the outputs
+                        var sum_of_all_outputs = 0;
+                        transaction[ "outputs" ].forEach( function( output ) {
+                            sum_of_all_outputs = sum_of_all_outputs + output[ "value" ];
+                        });
+                        var sum_of_all_inputs = 0;
+                        transaction[ "inputs" ].forEach( function( input ) {
+                            sum_of_all_inputs = sum_of_all_inputs + input[ "value" ];
+                        });
+                        var my_fee = sum_of_all_inputs - sum_of_all_outputs;
+                        //if the transaction does not pay you, do not mine it
+                        if ( !my_fee ) return;
+                        //check if the current block has a coinbase transaction for this wallet that pays me
+                        if ( sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] == "[]" ) {
+                            //if it does not, add that first, then add this transaction
+                            var mycoinbase_prep = {}
+                            mycoinbase_prep[ "wallet" ] = wallet_identifier;
+                            mycoinbase_prep[ "inputs" ] = [];
+                            var outputs = [];
+                            var addy = await getSecondUnusedSpacechainChangeAddress( localStorage[ "backup_words" ], wallet_identifier );
+                            var scripthash = bech32ToHex( addy );
+                            outputs.push( {"scripthash":scripthash,"value":sum_of_all_inputs - sum_of_all_outputs} );
+                            mycoinbase_prep[ "outputs" ] = outputs;
+                            mycoinbase_prep[ "timelock" ] = 1;
+                            var mycoinbase = JSON.stringify( mycoinbase_prep );
+                            sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ] = mycoinbase;
+                            userdata.push( mycoinbase );
+                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                            //add the new utxos to your utxo set
+                            if ( !localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                                var utxo_set = [];
                             } else {
-                                //otherwise, modify the coinbase transaction, then add this transaction
-                                var oldcoinbase = sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ];
-                                newcoinbase = JSON.parse( oldcoinbase );
-                                oldcoinbase = JSON.parse( oldcoinbase );
-                                newcoinbase.outputs[ 0 ][ "value" ] = oldcoinbase.outputs[ 0 ][ "value" ] + my_fee;
-                                //find the old coinbase
-                                var index_of_old_coinbase = userdata.indexOf( JSON.stringify( oldcoinbase ) );
-                                //replace it with the new one
-                                userdata.splice( index_of_old_coinbase, 1, JSON.stringify( newcoinbase ) );
-                                sessionStorage[ "userdata" ] = JSON.stringify( userdata );
-                                //add the new utxos to your utxo set
-                                await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
+                                var utxo_set = JSON.parse( localStorage[ `utxo_set_for_${wallet_identifier}` ] );
                             }
+                            var index_of_coinbase = userdata.indexOf( mycoinbase );
+                            if ( !utxo_set.includes( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" ) ) {
+                                utxo_set.push( String( getSpacechainHashes().length + 1 ) + ":" + String( userdata.length - 1 ) + ":0" );
+                            }
+                            localStorage[ `utxo_set_for_${wallet_identifier}` ] = JSON.stringify( utxo_set );
+                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
+                        } else {
+                            //otherwise, modify the coinbase transaction, then add this transaction
+                            var oldcoinbase = sessionStorage[ `coinbase_for_block_${getSpacechainHashes().length + 1}` ];
+                            newcoinbase = JSON.parse( oldcoinbase );
+                            oldcoinbase = JSON.parse( oldcoinbase );
+                            newcoinbase.outputs[ 0 ][ "value" ] = oldcoinbase.outputs[ 0 ][ "value" ] + my_fee;
+                            //find the old coinbase
+                            var index_of_old_coinbase = userdata.indexOf( JSON.stringify( oldcoinbase ) );
+                            //replace it with the new one
+                            userdata.splice( index_of_old_coinbase, 1, JSON.stringify( newcoinbase ) );
+                            sessionStorage[ "userdata" ] = JSON.stringify( userdata );
+                            //add the new utxos to your utxo set
+                            await transactionIsValidWalletTx( msg, true, wallet_identifier, getSpacechainHashes().length + 1, userdata.length );
                         }
                     }
                 }
