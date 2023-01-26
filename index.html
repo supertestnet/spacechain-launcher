@@ -2309,7 +2309,7 @@
                 var balance = 0;
                 var my_utxos = [];
                 var index_of_first_unused_address = await getIndexOfFirstUnusedSpacechainAddress( backupwords, wallet_identifier );
-                var i; for ( i=0; i<index_of_first_unused_address; i++ ) {
+                var i; for ( i=0; i<index_of_first_unused_address + 1; i++ ) {
                     var path = "295'/0'/0'";
                     var privkey = getPrivkeyHexFromPath( backupwords, path, i );
                     var pubkey = getPubkeyHexFromPrivkeyHex( privkey );
@@ -2351,7 +2351,7 @@
                             response = JSON.parse( response );
                             if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] || !response[ "data" ].length ) {
                                 console.log( response );
-                                alert( "You hit the api limit for blockchair's free api.\n\nProbably because, every five seconds, your wallet queries their api about each of your used spacechain addresses to see if there is an op_return on bitcoin that sent them some money.\n\nWait a few minutes before you hit okay and you should be good for another minute or so.\n\nIf this error gets so annoying you are about to scream, ask a developer for help hooking this up to your own node so you don't have to use a permissioned, rate-limited service like blockchair.\n\nYou can also add this to your url to increase the wait time before querying blockchair's api: &number_of_seconds_to_wait_before_rechecking_balance=20\n\nBut be aware it won't work super well if you've made a lot of transactions because it will still make a ton of queries, it will just wait a bit before doing so, and so you will still probably go over blockchair's rate limit." );
+                                alert( "You hit the api limit for blockchair's free api.\n\nProbably because, every five seconds, your wallet queries their api about each of your used spacechain addresses to see if there is an op_return on bitcoin that sent them some money.\n\nWait a few minutes before you hit okay and you should be good for another minute or so.\n\nIf this error gets so annoying you are about to scream, ask a developer for help hooking this up to your own node so you don't have to use a permissioned, rate-limited service like blockchair.\n\nYou can also add this to your url to increase the wait time before querying blockchair's api: &number_of_seconds_to_wait_before_rechecking_balance=60\n\nBut be aware it won't work super well if you've made a lot of transactions because it will still make a ton of queries, it will just wait a bit before doing so, and so you will still probably go over blockchair's rate limit." );
                                 window.location.reload();
                             }
                             utxo[ "burntx" ] = response[ "data" ][ 0 ][ "transaction_hash" ];
@@ -2361,8 +2361,8 @@
                     }
                     balance = balance + additional_balance;
                 }
-                var index_of_first_unused_change_address = getIndexOfFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier );
-                var i; for ( i=0; i<index_of_first_unused_change_address; i++ ) {
+                var index_of_first_unused_change_address = await getIndexOfFirstUnusedSpacechainChangeAddress( backupwords, wallet_identifier );
+                var i; for ( i=0; i<index_of_first_unused_change_address + 1; i++ ) {
                     var path = "295'/0'/1'";
                     var privkey = getPrivkeyHexFromPath( backupwords, path, i );
                     var pubkey = getPubkeyHexFromPrivkeyHex( privkey );
@@ -3000,7 +3000,7 @@
                 setTimeout( function() {mineOnLoop();}, 60000 * 10 );
             }
             function requestBlock( num_or_hash, investigating_theft, tracing_history ) {
-                console.log( "I will request block", num_or_hash );
+                //console.log( "I will request block", num_or_hash );
                 var blocks = [];
                 blocks.push( JSON.stringify( ["0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b","{\"spacechain_name\":\"Test chain\",\"spacechain_msg\":\"test message\"}"] ) );
                 blocks.push( JSON.stringify( ["8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24000834880f155d3719b4485d5c2afc97d3b60fcc58aa61ae1c048c02dabfcad0","second block woot"] ) );
@@ -3074,11 +3074,11 @@
             }
             async function syncChain() {
                 if ( !$_GET[ "chain" ] ) return;
-                console.log( "started syncing headers..." );
+                //console.log( "started syncing headers..." );
                 await returnAnchorTxidsTilTheftOrCurrentBlockheight( chain_til_theft_or_blockheight );
-                console.log( "almost done syncing headers..." );
+                //console.log( "almost done syncing headers..." );
                 await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
-                console.log( "syncing chain!" );
+                //console.log( "syncing chain!" );
                 if ( !!myminers.length || !$[ "syncfast" ] ) requestBlock( getSpacechainHashes().length + 1 );
                 // var spaceblock = [];
                 // spaceblock.push( "0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b" );
@@ -3107,7 +3107,7 @@
                 }
                 //every 5 seconds, get the spacechain's balance
                 var wallet_identifier = $_GET[ "wallet_id" ];
-                var double_the_number_of_seconds_to_wait = 10;
+                var double_the_number_of_seconds_to_wait = 30;
                 if ( $_GET[ "number_of_seconds_to_wait_before_rechecking_balance" ] ) double_the_number_of_seconds_to_wait = Number( $_GET[ "number_of_seconds_to_wait_before_rechecking_balance" ] ) * 2;
                 if ( num % double_the_number_of_seconds_to_wait == 0 && wallet_identifier ) {
                     try {
