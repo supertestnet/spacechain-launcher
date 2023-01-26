@@ -146,12 +146,6 @@
             if ( !localStorage[ "backup_words" ] ) {
                 localStorage[ "backup_words" ] = bip39.generateMnemonic();
             }
-            if ( !localStorage[ "index-of-first-known-unused-receive-address" ] ) {
-                    localStorage[ "index-of-first-known-unused-receive-address" ] = 0;
-            }
-            if ( !localStorage[ "index-of-first-known-unused-change-address" ] ) {
-                    localStorage[ "index-of-first-known-unused-change-address" ] = 0;
-            }
             async function view_offer() {
                 $( '.home' ).style.display = "none";
                 $( '.launch_step_1' ).style.display = "none";
@@ -1941,8 +1935,8 @@
                     if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;break;}
                     //disallow sending money to the same address twice
                     if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
-                        var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
-                        //if ( this_address_once_had_money ) {all_outputs_are_valid = false;break;}
+                        var this_address_once_had_money = await thisSpacechainAddressHadMoneyBeforeSpaceblock( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier, blocknum );
+                        if ( this_address_once_had_money ) {all_outputs_are_valid = false;break;}
                     }
                     //make no further checks on scripthashes, anything unique in the spacechain's history is fine
                     //even if it is not a valid spacechain address -- so basically op_returns are fine
@@ -2080,30 +2074,32 @@
                                 if ( Object.keys( transaction ).includes( "wallet" ) ) {
                                     if ( Object.keys( transaction ).includes( "outputs" ) ) {
                                         if ( Object.keys( transaction ).includes( "timelock" ) ) {
-                                            if ( !Object.keys( transaction ).includes( "inputs" ) ) {
+                                            if ( Object.keys( transaction ).includes( "inputs" ) ) {
                                                 if ( transaction[ "wallet" ] == wallet_identifier ) {
                                                     if ( Array.isArray( transaction[ "outputs" ] ) ) {
                                                         if ( Array.isArray( transaction[ "inputs" ] ) ) {
-                                                            var all_outputs_are_valid = true;
-                                                            var i; for ( i=0; i<transaction[ "outputs" ].length; i++ ) {
-                                                                var output = transaction[ "outputs" ][ i ];
-                                                                if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;break;}
-                                                                if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;break;}
-                                                                //disallow sending money to the same address twice
-                                                                if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
-                                                                    var this_address_once_had_money = await thisSpacechainAddressOnceHadMoney( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
-                                                                    console.log( "this address once had money, right?", this_address_once_had_money, hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
-                                                                    //if ( this_address_once_had_money ) {console.log( "ok, then I am noting that not all outputs are valid!" );all_outputs_are_valid = false;break;}
+                                                            if ( !transaction[ "inputs" ].length ) {
+                                                                var all_outputs_are_valid = true;
+                                                                var i; for ( i=0; i<transaction[ "outputs" ].length; i++ ) {
+                                                                    var output = transaction[ "outputs" ][ i ];
+                                                                    if ( Object.keys( output ).length != 2 ) {all_outputs_are_valid = false;break;}
+                                                                    if ( !Object.keys( output ).includes( "scripthash" ) ) {all_outputs_are_valid = false;break;}
+                                                                    //disallow sending money to the same address twice
+                                                                    if ( output[ "scripthash" ].length == 40 && isHex( output[ "scripthash" ] ) ) {
+                                                                        var this_address_once_had_money = await thisSpacechainAddressHadMoneyBeforeSpaceblock( hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier, blocknum );
+                                                                        console.log( "this address once had money, right?", this_address_once_had_money, hexToBech32( "sc", output[ "scripthash" ] ), wallet_identifier );
+                                                                        if ( this_address_once_had_money ) {console.log( "ok, then I am noting that not all outputs are valid in the coinbase of this block!", blocknum );all_outputs_are_valid = false;break;}
+                                                                    }
+                                                                    //make no further checks on scripthashes, anything unique in the spacechain's history is fine
+                                                                    //even if it is not a valid spacechain address -- so basically op_returns are fine
+                                                                    if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
+                                                                    if ( typeof( output[ "value" ] ) != "number" || String( output[ "value" ] ).includes( "." ) ) {all_outputs_are_valid = false;break;}
                                                                 }
-                                                                //make no further checks on scripthashes, anything unique in the spacechain's history is fine
-                                                                //even if it is not a valid spacechain address -- so basically op_returns are fine
-                                                                if ( !Object.keys( output ).includes( "value" ) ) {all_outputs_are_valid = false;break;}
-                                                                if ( typeof( output[ "value" ] ) != "number" || String( output[ "value" ] ).includes( "." ) ) {all_outputs_are_valid = false;break;}
-                                                            }
-                                                            console.log( "all outputs are valid, right?", all_outputs_are_valid, "if not I am returning true" );
-                                                            if ( all_outputs_are_valid ) {
-                                                                if ( transaction[ "inputs" ].length ) {
-                                                                    if ( transaction[ "outputs" ][ 0 ][ "value" ] == fee ) {cb_index = index - 1;return;}
+                                                                if ( all_outputs_are_valid ) {
+                                                                    if ( transaction[ "outputs" ][ 0 ][ "value" ] == fee ) {
+                                                                        cb_index = index - 1;
+                                                                        return cb_index;
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -2141,6 +2137,7 @@
             async function thisSpacechainAddressOnceHadMoney( address, wallet_identifier ) {
                 var hex = bech32ToHex( address );
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
+                console.log( "queried" );
                 var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
                 var response = await getData( url );
                 if ( !isValidJson( response ) ) console.log( response );
@@ -2155,6 +2152,122 @@
                     utxo_set = localStorage[ `utxo_set_for_${wallet_identifier}` ];                    
                 }
                 utxo_set = JSON.parse( utxo_set );
+                if ( !utxo_set || !utxo_set.length ) return;
+                utxo_set.forEach( function( utxo ) {
+                    var txid = utxo.split( ":" )[ 0 ] + ":" + utxo.split( ":" )[ 1 ];
+                    txs.push( getSpacechainTxByTxid( txid ) );
+                });
+                //then add their parents and so forth to that array
+                var i; for ( i=0; i<getSpacechainHashes().length; i++ ) {
+                    var current_length = String( txs.length );
+                    current_length = Number( current_length );
+                    txs.forEach( function( tx ) {
+                        tx = JSON.parse( tx );
+                        tx[ "inputs" ].forEach( function( input ) {
+                            if ( Object.keys( input ).length == 5 && !txs.includes( getSpacechainTxByTxid( input[ "blocknum" ] + ":" + input[ "tx_index" ] ) ) ) {
+                                txs.push( getSpacechainTxByTxid( input[ "blocknum" ] + ":" + input[ "tx_index" ] ) );
+                            }
+                        });
+                    });
+                    //stop if the number of valid transactions in the spacechain's history did not grow
+                    if ( txs.length == current_length ) break;
+                }
+                //check if any of the transactions in the txs array created an output where the address in question was in the scripthash
+                var output_was_created = false;
+                txs.every( function( tx ) {
+                    tx = JSON.parse( tx );
+                    tx[ "outputs" ].every( function( output ) {
+                        if ( output[ "scripthash" ] == hex ) {output_was_created = true;return;}
+                        return true;
+                    });
+                    if ( output_was_created ) return;
+                    return true;
+                });
+                return output_was_created;
+            }
+            async function thisSpacechainAddressHadMoneyBeforeSpaceblock( address, wallet_identifier, spaceblocknum ) {
+                var had_money = false;
+                //get the bitcoin block when the spaceblock was anchored
+                var anchor_txid = spacechain[ spaceblocknum - 1 ][ 2 ];
+                var data = await getData( `https://mempool.space/testnet/api/tx/${anchor_txid}` );
+                data = JSON.parse( data );
+                //if the block is not mined yet, assume the bitcoin block we are checking against
+                //is the current block, otherwise assume it's the block the transaction was
+                //anchored in
+                var current_blockheight = await getBlockheight();
+                if ( !data[ "status" ][ "confirmed" ] ) {
+                    var block = current_blockheight;
+                } else {
+                    var block = data[ "status" ][ "block_height" ];                    
+                }
+                //check if the address was op_returned before that bitcoin block
+                var hex = bech32ToHex( address );
+                var op_return = "6a34" + hex + $_GET[ "chain" ];
+                console.log( "queried" );
+                var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
+                var response = await getData( url );
+                if ( !isValidJson( response ) ) console.log( response );
+                response = JSON.parse( response );
+                if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) {
+                    console.log( response );
+                    alert( "You hit the api limit for blockchair's free api.\n\nProbably because, every five seconds, your wallet queries their api about each of your used spacechain addresses to see if there is an op_return on bitcoin that sent them some money.\n\nWait a few minutes before you hit okay and you should be good for another minute or so.\n\nIf this error gets so annoying you are about to scream, ask a developer for help hooking this up to your own node so you don't have to use a permissioned, rate-limited service like blockchair.\n\nYou can also add this to your url to increase the wait time before querying blockchair's api: &number_of_seconds_to_wait_before_rechecking_balance=60\n\nBut be aware it won't work super well if you've made a lot of transactions because it will still make a ton of queries, it will just wait a bit before doing so, and so you will still probably go over blockchair's rate limit." );
+                    window.location.reload();
+                }
+                if ( !Object.keys( response ).includes( "data" ) || !response[ "data" ] ) console.log( response );
+                var was_op_returned_in_the_block_in_question = false;
+                var earliest_txs_that_sent_it_money = [];
+                var earliest_block_id = current_blockheight;
+                if ( response && response[ "data" ] && response[ "data" ].length ) {
+                    response[ "data" ].forEach( function( item ) {
+                        if ( item[ "block_id" ] < block ) had_money = true;
+                        if ( item[ "block_id" ] < earliest_block_id ) {
+                            earliest_block_id = item[ "block_id" ];
+                            earliest_txs_that_sent_it_money = [];
+                            earliest_txs_that_sent_it_money.push( item[ "transaction_hash" ] )
+                        }
+                        if ( item[ "block_id" ] == block ) {
+                            was_op_returned_in_the_block_in_question = true;
+                            earliest_txs_that_sent_it_money.push( item[ "transaction_hash" ] )
+                        }
+                    });
+                }
+                //if it was, return true
+                if ( had_money ) return true;
+                //if it was not, check if it was op_returned in the block I'm investigating
+                //if it was, check if it was op_returned before the transaction in which the spaceblock was anchored
+                var address_was_op_returned_first = false;
+                if ( was_op_returned_in_the_block_in_question ) {
+                    var i; for ( i=0; i<earliest_txs_that_sent_it_money; i++ ) {
+                        var item = earliest_txs_that_sent_it_money[ i ];
+                        var tx_that_appeared_first = await findWhichTxAppearedFirst( anchor_txid, item );
+                        if ( tx_that_appeared_first == item ) {
+                            var address_was_op_returned_first = true;
+                            break;
+                        }
+                    }
+                }
+                //if it was, return true
+                if ( address_was_op_returned_first ) return true;
+                //console.log( "this address never had money sent to it via bitcoin:", address );
+                //if it was not, the first check is false, now proceed to the second check
+                //make a copy of my utxo set
+                var utxo_set = "[]";
+                if ( localStorage[ `utxo_set_for_${wallet_identifier}` ] ) {
+                    utxo_set = localStorage[ `utxo_set_for_${wallet_identifier}` ];
+                }
+                utxo_set = JSON.parse( utxo_set );
+                if ( !utxo_set || !utxo_set.length ) return;
+                var copy_of_utxo_set = JSON.parse( JSON.stringify( utxo_set ) );
+                //throw out all entries that start with a blocknum equal to or higher than the spaceblock number I'm checking
+                utxo_set.forEach( function( item, index ) {
+                    var items_block = item.split( ":" )[ 0 ];
+                    if ( items_block >= spaceblocknum ) {
+                        copy_of_utxo_set.splice( index, 1 );
+                    }
+                });
+                utxo_set = JSON.parse( JSON.stringify( copy_of_utxo_set ) );
+                //if, in the remaining set, an output sent money to this address, return true
+                var txs = [];
                 if ( !utxo_set || !utxo_set.length ) return;
                 utxo_set.forEach( function( utxo ) {
                     var txid = utxo.split( ":" )[ 0 ] + ":" + utxo.split( ":" )[ 1 ];
@@ -2204,6 +2317,7 @@
                 //if there is no balance according to the spacechain,
                 //check if there was ever a balance according to bitcoin's blockchain
                 var op_return = "6a34" + hex + $_GET[ "chain" ];
+                console.log( "queried" );
                 var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
                 var response = await getData( url );
                 if ( !isValidJson( response ) ) console.log( response );
@@ -2346,6 +2460,7 @@
                             });
                         } else {
                             var op_return = "6a34" + hex + $_GET[ "chain" ];
+                            console.log( "queried" );
                             var url = `https://api.blockchair.com/bitcoin/testnet/outputs?q=type(nulldata)&q=script_hex(^${op_return})`;
                             var response = await getData( url );
                             response = JSON.parse( response );
@@ -3000,7 +3115,7 @@
                 setTimeout( function() {mineOnLoop();}, 60000 * 10 );
             }
             function requestBlock( num_or_hash, investigating_theft, tracing_history ) {
-                //console.log( "I will request block", num_or_hash );
+                console.log( "I will request block", num_or_hash );
                 var blocks = [];
                 blocks.push( JSON.stringify( ["0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b","{\"spacechain_name\":\"Test chain\",\"spacechain_msg\":\"test message\"}"] ) );
                 blocks.push( JSON.stringify( ["8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24000834880f155d3719b4485d5c2afc97d3b60fcc58aa61ae1c048c02dabfcad0","second block woot"] ) );
@@ -3080,22 +3195,6 @@
                 await returnLatestAnchorTxidOrThatNewOneMustBeMade( $_GET[ "chain" ] );
                 //console.log( "syncing chain!" );
                 if ( !!myminers.length || !$[ "syncfast" ] ) requestBlock( getSpacechainHashes().length + 1 );
-                // var spaceblock = [];
-                // spaceblock.push( "0000000000000000000000000000000000000000000000000000000000000000a88800eacc0567c3799562cb7ea9f9932a6c2e76d1881be158486883fc6be08b" );
-                // spaceblock.push( '{"spacechain_name":"Test chain","spacechain_msg":"test message"}' );
-                // spacechain.push([ "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24", JSON.stringify( spaceblock ), "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6" ]);
-                // var spaceblock2 = [];
-                // spaceblock2.push( "8080828e4d82434e4e5a9cb2434224fb5ecee23a6359d09e7608bcfbc0597b24000834880f155d3719b4485d5c2afc97d3b60fcc58aa61ae1c048c02dabfcad0" );
-                // spaceblock2.push( "second block woot" );
-                // spacechain.push([ "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f9", JSON.stringify( spaceblock2 ), "2aa978e504560ef4f605b01eb7537a4f5da7ac5b08d11179b236118d62d061cc" ]);
-                // var spaceblock3_1 = [];
-                // spaceblock3_1.push( "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f950920d1ea99cc88ed832f1c15882dbd5ab5770f368842775038093ffa5c6f757" );
-                // spaceblock3_1.push( "This is the third spaceblock and I have become exceedingly efficient at it." );
-                // spacechain.push([ "898068d17894c438e99953695b0270068115aae532ebeda8d8310554ac45e4b0", JSON.stringify( spaceblock3_1 ), "8a745f510aa2ecf83a20de0b3398ad8227d73c07370247963cf4e526e5b045ac" ]);
-                // var spaceblock3_2 = [];
-                // spaceblock3_2.push( "bce8697fc079c2b58dbe64e6fb5068ea9e35c1afed26f35697262fbf6b5041f9225f40e951f9e39aad545695b38387660b91b3b68ac6fc5dd16c808d04e799ad" );
-                // spaceblock3_2.push( "This is a fork block, I am experimenting with forks" );
-                // spacechain.push([ "6bb933c3ef46cda86568322b21bd85db413e7692214ee0f5fc984e1e31c93944", JSON.stringify( spaceblock3_2 ), "e8418bd995112bae9c2b2dc36be86d6d9fc3082b549e0881afc8fabe2024499a" ]);
             }
             function checkHeartbeat( num ) {
                 if ( socket && socket.readyState == 3 ) {
@@ -3429,7 +3528,6 @@
                         //without adding its transactions to the utxo set, check if the transaction is valid
                         var wallet_identifier = $_GET[ "wallet_id" ];
                         var tx_is_good = await transactionIsValidWalletTx( msg, true, wallet_identifier, 1, 1, true );
-                        console.log( "tx is good?", tx_is_good );
                         //ignore the transaction if it is no good, otherwise continue
                         if ( tx_is_good ) {
                             var transaction = JSON.parse( msg );
