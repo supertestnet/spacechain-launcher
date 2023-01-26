@@ -19,7 +19,7 @@ Issuing spacecoins seems to work, though it's currently disabled unless you pass
 
 # What doesn't work
 
-A lot of stuff involving the built in wallet is super wonky or doesn't work at all. Sometimes it thinks you still have spacecoins that you've actually spent. It doesn't have a button for importing an existing wallet, so good luck trying to do that. The wallet tries to broadcast transactions to other miners but they don't currently do anything in response, like mine them.
+A lot of stuff involving the built in wallet is super wonky or doesn't work at all. It doesn't have a button for importing an existing wallet, so good luck trying to do that. The wallet tries to broadcast transactions to other miners but they don't currently do anything in response, like mine them.
 
 Any sort of competitive mining will probably be totally borked til I fix it. One of its problems is that it relies on data from mempool.space to see the status of the anchor utxo. But mempool.space follows a "first seen" rule for transactions with RBF disabled, meaning a miner can pay a low fee with rbf, then pay a high fee, and no one else will know he paid that high fee.
 
