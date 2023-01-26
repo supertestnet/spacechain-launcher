@@ -19,9 +19,9 @@ Issuing spacecoins seems to work, though it's currently disabled unless you pass
 
 # What doesn't work
 
-A lot of stuff involving the built in wallet is super wonky or doesn't work at all. It doesn't have a button for importing an existing wallet, so good luck trying to do that. The wallet tries to broadcast transactions to other miners but they don't currently do anything in response, like mine them.
+A lot of stuff involving the built in wallet is super wonky or doesn't work at all. It doesn't have a button for importing an existing wallet, so good luck trying to do that. The wallet tries to broadcast transactions to other miners but they don't currently do anything in response, like mine them. Users can mine their own transactions, but that leads directly to the next problem:
 
-Any sort of competitive mining will probably be totally borked til I fix it. One of its problems is that it relies on data from mempool.space to see the status of the anchor utxo. But mempool.space follows a "first seen" rule for transactions with RBF disabled, meaning a miner can pay a low fee with rbf, then pay a high fee, and no one else will know he paid that high fee.
+Any sort of competitive mining, or even just having two people try to mine a spaceblock in the same bitcoin block, is totally borked. One of the problems is that my mining function relies on data from mempool.space to see the status of the anchor utxo. But mempool.space follows a "first seen" rule for transactions with RBF disabled, meaning a miner can pay a low fee with rbf disabled, then pay a high fee, and no one else will know he paid that high fee.
 
 The mining software also doesn't reset your transaction data when a new block comes in, so if you don't do it manually (by typing esoteric commands from the source code into your browser console), your browser might try to mine transactions that have already been mined.
 
