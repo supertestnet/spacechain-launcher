@@ -19,4 +19,6 @@ Any sort of competitive mining will probably be totally borked til I fix it. One
 
 The mining software also doesn't reset your transaction data when a new block comes in, so if you don't do it manually (by typing esoteric commands from the source code into your browser console), your browser might try to mine transactions that have already been mined.
 
-A bunch of other stuff is broken too but that's good for now.
+I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 9 or so blocks in the source code and you can sort of load them by passing this url parameter: `&fastsync=true` and then entering this into your browser console: `requestBlock( 1 );`
+
+A bunch of other stuff is broken too but that's good for now. Oh yeah, and due to the fact that the wallet is in such a terrible state, I disabled it unless you pass this url parameter: `&testing_wallet=true`.
