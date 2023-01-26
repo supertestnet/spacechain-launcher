@@ -15,7 +15,7 @@ The script address for anchor outputs seems to work. It's an anyone-can-spend ad
 
 Fork resolution seems to work. If you request a block and someone sends you one that does not build on your latest one, your browser will try to resolve the fork by repeatedly requesting the parents, grandparents, and so forth of the contested blocks. If both have a direct lineage back to the genesis block, it is a legitimate fork, and which one to follow is decided first by which one is longer, and, if the chains are the same length, by which chain's anchor transaction comes first at the moment of the fork.
 
-Issuing spacecoins seems to work. You can issue spacecoins by burning sats. Every sat burned gets you a new spacecoin. There is a marketplace where users can peg into the spacechain by burning sats. The software seems to reliably detect the burned coins and appropriately display your balance in the built in wallet.
+Issuing spacecoins seems to work, though it's currently disabled unless you pass a special url parameter (see below). You can issue spacecoins by burning sats. Every sat burned gets you a new spacecoin. There is a marketplace where users can peg into the spacechain by burning sats. The software seems to reliably detect the burned coins and appropriately display your balance in the built in wallet.
 
 # What doesn't work
 
@@ -27,4 +27,4 @@ The mining software also doesn't reset your transaction data when a new block co
 
 I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 9 or so blocks in the source code and you can sort of load them by passing this url parameter: `&fastsync=true` and then entering this into your browser console: `requestBlock( 1 );`
 
-A bunch of other stuff is broken too but that's good for now. Oh yeah, and due to the fact that the wallet is in such a terrible state, I disabled it unless you pass this url parameter: `&testing_wallet=true`.
+A bunch of other stuff is broken too but that's good for now. Oh yeah, and due to the fact that the wallet is in such a terrible state, I disabled it unless you pass this url parameter: `&testing_wallet=true`. This also disables the peg in mechanism because that function relies on you having a wallet to deposit the spacecoins into.
