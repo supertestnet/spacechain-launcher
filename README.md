@@ -45,6 +45,6 @@ That's fine, you can oppose it. I think a few things are worth pointing out in i
 
 (1) Not *everyone* has to burn bitcoins to use a spacechain. The spacechain creator will probably do that to issue an initial supply of coins, but after that's done, other people can just use those issued coins by buying them from the spacechain creator or other holders.
 
-(2) You can get rid of the bitcoin burning part by issuing some other token in a trusted manner. For example, tether could create a spacechain whose only token is tethers, and they wouldn't have to burn any bitcoins to do that.
+(2) You can get rid of the bitcoin burning part by issuing some other token in a trusted manner. For example, tether corp could create a spacechain whose only token is tethers, and they wouldn't have to burn any bitcoins to do that.
 
 (3) The reason why I *personally* think burning bitcoins is dumb is because I don't see any meaningful value I can get in compensation for it. If a spacechain really offered some feature that I thought was worth $10, I would be willing to burn up to $10 in bitcoin to get that feature, because in that case I'm really just purchasing something, and whether I send $10 to a seller or burn them in a burn transaction, it makes no difference to me. So if someone comes up with a really compelling use case for spacechains (which I doubt will happen) I might burn a few sats to use it. I don't think it's *inherently* dumb, I just doubt anyone will come up with anything useful enough to justify it according to my personal preferences.
