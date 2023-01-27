@@ -25,7 +25,7 @@ Any sort of competitive mining, such as two people trying to mine a spaceblock i
 
 The mining software also doesn't reset your transaction data when a new block comes in, so if you don't do it manually (by typing esoteric commands from the source code into your browser console, or by refreshing the page), your browser might try to mine transactions that have already been mined. As a temporary workaround, you can refresh your browser after every new block and that will clear your cached transaction data.
 
-I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 10 or so blocks in the source code.
+I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 10 or so blocks of the first spacechain into the source code, but good luck reading the source code to figure out how to make your browser recognize them as spaceblocks.
 
 Due to the fact that the wallet is in such a terrible state, I disabled it unless you pass this url parameter: `&testing_wallet=true`. This also disables the spacecoin issuance mechanism since it relies on you having a wallet to deposit the newly issued spacecoins into.
 
