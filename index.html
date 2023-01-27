@@ -3578,8 +3578,6 @@
                 });
             }
             $( '.mine_new_block' ).onclick = async function() {
-                alert( `One block at a time, sir! Wait til your previous block confirms before making a new one. That is how spacechains work.` );
-                return;
                 var anchor_txid = await returnLatestAnchorTxidOrThatNewOneMustBeMade( "a2404dac05e6379fadd334e0e41072c089c36f18a6feb4edf0d5c8e678726183" );
                 var data = await getData( `https://mempool.space/testnet/api/tx/${anchor_txid}` );
                 data = JSON.parse( data );
