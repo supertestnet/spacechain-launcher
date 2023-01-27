@@ -163,7 +163,7 @@
                 $( '.mining_center' ).style.display = "none";
                 $( '.pegzone' ).style.display = "none";
                 $( '.spacecoin_offer' ).style.display = "block";
-                if ( $_GET[ "offer" ] == "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6" ) {
+                if ( $_GET[ "offer" ] == $_[ "chain" ] ) {
                     var offer = document.createElement( "div" );
                     offer.style = "border: 1px solid black; padding: 10px; margin: 10px;";
                     offer.className = "sell_offer";
