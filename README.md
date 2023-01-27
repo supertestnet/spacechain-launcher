@@ -41,7 +41,7 @@ Spacechains do burn bitcoins but I don't think they are an attack on bitcoin. I 
 
 ## Why did you make a thing that burns bitcoins if you don't recommend it?
 
-Lack of self control. When I originally heard about spacechains I was like, "Burn bitcoins? That's a dumb idea," and then I started thinking up reasons why it's dumb, and then I wondered, "How would you even *do* that?" so I considered it a few minutes and realized how it might be done, and then I was stuck. I had to try it and see if it would work. And it does work, but that doesn't make it a good idea.
+Lack of self control. When I originally heard about spacechains I was like, "Burn bitcoins? That's a dumb idea," and then I started thinking up reasons why it's dumb, and then I wondered, "How would you even *do* that?" so I considered it a few minutes and realized how it might be done, and then I was done for: I had to try it and see if it would work. And it does work, but that doesn't make it a good idea.
 
 ## I oppose this because it burns bitcoins
 
