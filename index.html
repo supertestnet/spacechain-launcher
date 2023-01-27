@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
-	    <style>
+        <style>
                 * {
                     box-sizing: border-box;
                     font-size: 1.15rem;
@@ -106,7 +106,7 @@
                 .spaceblocks p {
                     word-wrap: break-word;
                 }
-	    </style>
+        </style>
         <script src="https://bitcoincore.tech/apps/bitcoinjs-ui/lib/bitcoinjs-lib.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/merkletreejs@latest/merkletree.js"></script>
         <script src="https://supertestnet.github.io/bitcoin-chess/js/qrcode.js"></script>
@@ -1038,6 +1038,7 @@
             }
 
             async function getAllTxsInvolvingAddress( address ) {
+                console.log( "address:", address );
                 var tx_num = await getNumberOfTxsInvolvingAddress( address );
                 var txs = [];
                 var last_seen = "";
@@ -1048,7 +1049,7 @@
                         var url = `https://mempool.space/testnet/api/address/${address}/txs`;
                     }
                     var info = await getData( url );
-                    last_seen = JSON.parse( info )[ JSON.parse( info ).length - 1 ][ "txid" ];
+                    if ( i>1 ) last_seen = JSON.parse( info )[ JSON.parse( info ).length - 1 ][ "txid" ];
                     JSON.parse( info ).forEach( function( item ) {
                         txs.push( item )
                     });
