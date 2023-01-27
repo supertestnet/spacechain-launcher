@@ -2549,7 +2549,7 @@
                 }
                 sync_in_progress = true;
                 if ( $( '.syncing_utxos' ) ) $( '.syncing_utxos' ).innerText = "syncing...";
-                $( '.assay_block' ).innerText = "Block " + String( blocknum ) + " (this will update as the syncing process moves from block to block)";
+                if ( $( '.syncing_utxos' ) ) $( '.assay_block' ).innerText = "Block " + String( blocknum ) + " (this will update as the syncing process moves from block to block)";
                 //console.log( "I will now adjust the utxo set using data from block", blocknum );
                 var i; for ( i=0; i<claimed_block.length; i++ ) {
                     var index = i;
@@ -2574,8 +2574,8 @@
                 last_block_synced = blocknum;
                 localStorage[ "last_block_synced" ] = last_block_synced;
                 sync_in_progress = false;
-                $( '.syncing_utxos' ).innerText = "Synced";
-                $( '.assay_block' ).innerText = "none (this will update as the syncing process moves from block to block)";
+                if ( $( '.syncing_utxos' ) ) $( '.syncing_utxos' ).innerText = "Synced";
+                if ( $( '.assay_block' ) ) $( '.assay_block' ).innerText = "none (this will update as the syncing process moves from block to block)";
             }
             //end of spacechain functions
         </script>
