@@ -19,7 +19,7 @@ Issuing spacecoins seems to work. Anyone can issue spacecoins by burning sats, t
 
 Sending and receiving spacecoins seems to work, with the above caveat that the wallet is incredibly slow to detect these transfers, just like it's slow to detect issuance op_returns. Even *after* a transaction gets confirmed and is visible on the built in spaceblock explorer, the wallet probably won't detect it for several minutes, because it's busy waiting for its turn in a queue of api calls.
 
-The built in spaceblock explorer works. I am pretty proud of it, actually. It does almost everything I want it to. I think it's a very cool feature of this software that it comes with a built in block explorer.
+The built in block explorer works. I am pretty proud of it, actually. It does almost everything I want it to. I think it's a very cool feature of this software that it comes with a built in block explorer.
 
 # What doesn't work
 
