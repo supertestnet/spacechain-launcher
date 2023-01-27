@@ -3434,7 +3434,8 @@
             $( '.view_first_spacechain' ).onclick = async function() {
                 var url = window.location.protocol + "//" + window.location.hostname + window.location.pathname +
                 "?chain=" + "25594d702f285977c5c127bb4b6dc9564b73f82ae67a39b5ec8743ffbba554d6";
-                if ( $_GET[ "testing_wallet" ] ) url += "&wallet_id=" + "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                //if ( $_GET[ "testing_wallet" ] ) url += "&wallet_id=" + "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                url += "&wallet_id=" + "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
                 window.location.href = url;
             }
             $( '.genesis_block_submit' ).onclick = async function() {
@@ -3608,6 +3609,7 @@
                 item.onclick = function() {view_network_home();}
             });
             $( '.buy_and_sell_spacecoins' ).onclick = async function() {
+                alert( "Warning, this section is super wonky and breaks all the time. Ask for help in the spacechains telegram channel (https://t.me/spacechains) to help us debug it." );
                 $( '.launch_page' ).style.display = "none";
                 $( '.pegzone' ).style.display = "block";
                 $( '.orderbook' ).innerHTML = ``;
@@ -3683,6 +3685,7 @@
                 alert( "success! Your spacecoins will be available in the spacechain address you designated as soon as this transaction is confirmed: " + txid );
             }
             $( '.manage_your_wallet' ).onclick = function() {
+                alert( "Warning, this section is super wonky and breaks all the time. Ask for help in the spacechains telegram channel (https://t.me/spacechains) to help us debug it." );
                 $( '.launch_page' ).style.display = "none";
                 $( '.spacecoin_payment_div_container' ).style.display = "none";
                 $( '.spacecoin_payment_qr_code' ).innerHTML = ``;
