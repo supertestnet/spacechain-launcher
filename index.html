@@ -2548,7 +2548,7 @@
                     return;
                 }
                 sync_in_progress = true;
-                $( '.syncing_utxos' ).innerText = "syncing...";
+                if ( $( '.syncing_utxos' ) ) $( '.syncing_utxos' ).innerText = "syncing...";
                 $( '.assay_block' ).innerText = "Block " + String( blocknum ) + " (this will update as the syncing process moves from block to block)";
                 //console.log( "I will now adjust the utxo set using data from block", blocknum );
                 var i; for ( i=0; i<claimed_block.length; i++ ) {
