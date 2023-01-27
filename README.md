@@ -33,7 +33,7 @@ A bunch of other stuff is broken too but that's good for now.
 
 # Don't spacechains involve burning bitcoins? And isn't that an attack on bitcoin?
 
-Spacechains do burn bitcoins and while I don't think it is an attack on bitcoin, I also don't recommend it, because you'll probably never get back all that you burnt.
+Spacechains do burn bitcoins but I don't think it is an attack on bitcoin. I also don't recommend it, because you'll probably never get back all that you burnt.
 
 # Why did you make a thing that burns bitcoins if you don't recommend it?
 
