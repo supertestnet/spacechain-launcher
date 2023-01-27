@@ -3584,7 +3584,8 @@
                 var data = await getData( `https://mempool.space/testnet/api/tx/${anchor_txid}` );
                 data = JSON.parse( data );
                 var current_blockheight = await getBlockheight();
-                if ( data[ "status" ][ "block_height" ] == current_blockheight ) {
+                console.log( data[ "status" ][ "block_height" ], data[ "status" ], current_blockheight, data[ "status" ][ "block_height" ] == current_blockheight )
+                if ( !data[ "status" ][ "block_height" ] || data[ "status" ][ "block_height" ] == current_blockheight ) {
                     alert( `One block at a time, my friend! Wait til your previous block confirms before making a new one. That is how spacechains work.` );
                     return;
                 }
