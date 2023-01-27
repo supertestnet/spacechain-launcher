@@ -43,7 +43,7 @@ Lack of self control. When I originally heard about spacechains I was like, "Bur
 
 That's fine, you can oppose it. I think a few things are worth pointing out in its defense:
 
-(1) The spacechain creator will probably burn a few sats to issue an initial supply of coins on the spacechain, but after that, there's no reason anyone else has to do it. Other people can just buy some of the intial supply and use those. The option to make your own spacecoins (through burning) is just there to prevent the people who hold the initial supply from charging too much for them. If they ever charge more than 1 sat per spacecoin, you can just make your own spacecoins. Having that option keeps the whole thing permissionless.
+(1) Spacechain creators will probably burn a few million sats to issue an initial supply of coins on their spacechain, but after that, there's no reason anyone else has to do it. Other people can just buy some of the intial supply and use those. The option to make your own spacecoins (through burning) is just there to prevent the people who hold the initial supply from charging too much for them. If they ever charge more than 1 sat per spacecoin, you can just make your own spacecoins. Having that option keeps the whole thing permissionless.
 
 (2) You can get rid of the bitcoin burning part by issuing some other token in a trusted manner. For example, tether corp could create a spacechain whose only token is tethers, and they wouldn't have to burn any bitcoins to do that.
 
