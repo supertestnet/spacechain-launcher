@@ -31,7 +31,7 @@ The mining software also doesn't reset your transaction data when a new block co
 
 I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 10 or so blocks of the first spacechain into the source code, but good luck reading the source code to figure out how to make your browser recognize them as spaceblocks.
 
-In the marketplace, you cannot yet make your own offers. To enable that I want to make a new opcode that makes a spacechain transaction valid if and only if a utxo is created on bitcoin before a certain blockheight that sends the right amount of sats to the right destination. That will allow non-interactive atomic swaps between bitcoin and the spaccechain, which people can use to sell spacecoins and thus leave the spacechain.
+In the marketplace, you cannot yet make your own offers. To enable that I want to make a new opcode that makes a spacechain transaction valid if and only if a utxo is created on bitcoin before a certain blockheight and sends a specified amount of sats to a specified destination. That will allow non-interactive atomic swaps between bitcoin and the spacechain, which people can use to easily list spacecoins for sale and then leave the spacechain whenever someone takes their offer.
 
 A bunch of other stuff is broken too but that's a long enough list for now.
 
