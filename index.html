@@ -2998,7 +2998,9 @@
                     sessionStorage[ "spaceblock_hash" ] = "";
                     sessionStorage[ "next_spaceblock" ] = "";
                     console.log( "my spacechain:", spacechain );
-                    window.location.href = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + txid;
+                    var url = window.location.protocol + "//" + window.location.hostname + window.location.pathname + "?chain=" + txid;
+                    url += "&wallet_id=" + "5c2dfbbfb0cafe0c56efec3fcf9a83a776f13173338ddc2cb8ced74152d320be";
+                    window.location.href = url;
                 }
                 if ( page == "mining_center" ) {
                     $( '.new_block_payment_qr_code' ).innerHTML = ``;
