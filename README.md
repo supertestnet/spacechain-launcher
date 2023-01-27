@@ -15,7 +15,7 @@ The script address for anchor outputs seems to work. It's an anyone-can-spend ad
 
 Fork resolution seems to work. If you request a block and someone sends you one that does not build on your latest one, your browser will try to resolve the fork by repeatedly requesting the parents, grandparents, and so forth of the contested blocks. If both have a direct lineage back to the genesis block, it is a legitimate fork, and which one to follow is decided first by which one is longer, and, if the chains are the same length, by which chain's anchor transaction comes first at the moment of the fork.
 
-Issuing spacecoins seems to work, though it's currently disabled unless you pass a special url parameter (see below). You can issue spacecoins by burning sats. Every sat burned gets you a new spacecoin. There is a marketplace where users can peg into the spacechain by burning sats. The software seems to reliably detect the burned coins and appropriately display your balance in the built in wallet.
+Issuing spacecoins seems to work. Anyone can issue spacecoins by burning sats, though my hope is that no one actually does this on mainnet (see the FAQ below). Every sat burned gets you a new spacecoin. There is a marketplace where users can peg into the spacechain by burning sats. The software seems to reliably detect the burned coins and appropriately display your balance in the built in wallet, but the wallet is often veeeerrrryyyyyy ssssssslllllloooowwwwww. (It relies on a rate limited web api from blockchair to search for op_returns in bitcoin's blockchain, and to make it work at all, I have to queue the api queries and do them slowly. Their service also randomly gives 504 errors to some requests so I have to deal with that too.)
 
 # What doesn't work
 
@@ -31,15 +31,17 @@ Due to the fact that the wallet is in such a terrible state, I disabled it unles
 
 A bunch of other stuff is broken too but that's good for now.
 
-# Don't spacechains involve burning bitcoins? And isn't that an attack on bitcoin?
+# FAQ
+
+## Don't spacechains involve burning bitcoins? And isn't that an attack on bitcoin?
 
 Spacechains do burn bitcoins but I don't think it is an attack on bitcoin. I also don't recommend it, because you'll probably never get back all that you burnt.
 
-# Why did you make a thing that burns bitcoins if you don't recommend it?
+## Why did you make a thing that burns bitcoins if you don't recommend it?
 
 Lack of self control. When I originally heard about spacechains I was like, "Burn bitcoins? That's a dumb idea," and then I started thinking up reasons why it's dumb, and then I wondered, "How would you even *do* that?" so I considered it a few minutes and realized how it might be done, and then I was stuck. I had to try it and see if it would work. And it does work, but that doesn't make it a good idea.
 
-# I oppose this because it burns bitcoins
+## I oppose this because it burns bitcoins
 
 That's fine, you can oppose it. I think a few things are worth pointing out in its defense:
 
