@@ -30,3 +30,11 @@ I'm not running an always-on miner so you'll have trouble finding any blocks whe
 Due to the fact that the wallet is in such a terrible state, I disabled it unless you pass this url parameter: `&testing_wallet=true`. This also disables the spacecoin issuance mechanism since it relies on you having a wallet to deposit the newly issued spacecoins into.
 
 A bunch of other stuff is broken too but that's good for now.
+
+# Don't spacechains involve burning bitcoins? And isn't that an attack on bitcoin?
+
+Spacechains do burn bitcoins and while I don't think it is an attack on bitcoin, I also don't recommend it, because you'll probably never get back all that you burnt.
+
+# Why did you make a thing that burns bitcoins if you don't recommend it?
+
+Because I can't help myself. When I originally heard about spacechains I was like, "Burn bitcoins? That's a dumb idea," and then I started listing reasons why it's dumb, and then I thought, "How would you even DO that?" and then I thought for a few minutes and realized, "Oh, I think I see how you could probably do it," and then I was stuck, I had to try it and see if it would work. And it does work, but that doesn't make it a good idea.
