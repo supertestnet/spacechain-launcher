@@ -23,7 +23,7 @@ A lot of stuff involving the built in wallet is super wonky or doesn't work at a
 
 Any sort of competitive mining, such as two people trying to mine a spaceblock in the same bitcoin block, is totally borked. One of the problems is that my mining function relies on data from mempool.space to see the status of the anchor utxo. But mempool.space follows a "first seen" rule for transactions with rbf disabled, meaning a miner can pay a low fee with rbf disabled, then pay a high fee, and no one else will know he paid that high fee, because mempool.space will ignore it. It gives a whole new meaning to "blind" merge mining.
 
-The mining software also doesn't reset your transaction data when a new block comes in, so if you don't do it manually (by typing esoteric commands from the source code into your browser console, or refreshing the page), your browser might try to mine transactions that have already been mined. As a temporary workaround, you can refresh your browser after every new block and that will clear your cached transaction data.
+The mining software also doesn't reset your transaction data when a new block comes in, so if you don't do it manually (by typing esoteric commands from the source code into your browser console, or by refreshing the page), your browser might try to mine transactions that have already been mined. As a temporary workaround, you can refresh your browser after every new block and that will clear your cached transaction data.
 
 I'm not running an always-on miner so you'll have trouble finding any blocks when I'm not running tests. Miners are the only ones who serve blocks right now so you can't really get them from somewhere else. I did put the first 10 or so blocks in the source code.
 
