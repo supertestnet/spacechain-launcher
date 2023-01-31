@@ -5,6 +5,10 @@ An implementation of a spacechain with a mechanism for launching your own
 
 Go here: https://supertestnet.github.io/spacechain-launcher/
 
+# Video
+
+https://www.youtube.com/watch?v=ajzy_8Nibv8
+
 # What works
 
 Creating a spacechain works (yay!).
