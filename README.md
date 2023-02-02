@@ -18,13 +18,14 @@ https://www.youtube.com/watch?v=ajzy_8Nibv8
 5. For its subsequent blocks she repeats steps 2-4 but now each block must "point to" its parent
 6. To ensure that anyone can compete to make more blocks in case Alice stops (or censors someone), the utxo created in step 3 must use an anyone_can_spend address -- the ACSA -- and subsequent blocks must be committed to by spending *from* the ACSA
 7. As long as sidechain "block producers" follow steps 5-6 repeatedly, the "trail of blocks," i.e. their order in the blockchain, is easy to follow
-9. If no one ever deviated from this pattern we would not need to do anything more -- as an aside, sighash_anyprevout and op_check_template_verify do that: they make a covenant so that block producers *have to* follow this pattern, anything else is an invalid transaction
-10. But we do not have sighash_anyprevout or op_check_template_verify so I do this instead: suppose a rogue miner takes the money from the ACSA and sends it to his wallet
-11. That is detectable by anyone syncing the chain because the trail mentioned in step 7 suddenly stops
-12. So what they do now is, they rely on this fallback mechanism: block producers can bid to put a new utxo in the ACSA to serve as the new "recovery point" for the trail
-13. Since many people can create this "recovery point," nodes must come to consensus on which one to follow
-14. The consensus mechanism is a first-seen rule: run through every transaction after the theft searching for the first transaction that puts money in the ACSA, and the resulting utxo is, by consensus, the recovery point
-15. Return to step 5 and loop forever -- voila, the sidechain never dies and nodes can always come to consensus on its next block
+8. If no one ever deviated from this pattern we would not need to do anything more -- as an aside, sighash_anyprevout and op_check_template_verify do that: they make a covenant so that block producers *have to* follow this pattern, anything else is an invalid transaction
+9. But we do not have sighash_anyprevout or op_check_template_verify so I do this instead: suppose a rogue miner takes the money from the ACSA and sends it to his wallet
+10. That is detectable by anyone syncing the chain because the trail mentioned in step 7 suddenly stops
+11. So what they do now is, they rely on this fallback mechanism: block producers can bid to put a new utxo in the ACSA to serve as the new "recovery point" for the trail
+12. Since many people can create this "recovery point," nodes must come to consensus on which one to follow
+13. The consensus mechanism is a first-seen rule: run through every transaction after the theft searching for the first transaction that puts money in the ACSA, and the resulting utxo is, by consensus, the recovery point
+14. Return to step 5 and loop forever
+15. Voila, the sidechain never dies and nodes can always come to consensus on its next block
 
 # What works
 
