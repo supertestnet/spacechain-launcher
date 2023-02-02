@@ -9,6 +9,23 @@ Go here: https://supertestnet.github.io/spacechain-launcher/
 
 https://www.youtube.com/watch?v=ajzy_8Nibv8
 
+# Principles of operation
+
+1. Alice wants to make a bitcoin sidechain
+2. For its first block she creates some data and hashes it
+3. She creates a bitcoin transaction that commits to that hash
+4. For its subsequent blocks she repeats steps 2 & 3 except now each one must "point to" its parent
+5. To ensure that anyone can compete to make more blocks in case Alice stops, the utxo created in step 3 must use an anyone_can_spend address (the ACSA)
+6. As long as sidechain "block producers" spend *from* the ACSA *to* the ACSA, the order of sidechain blocks, their "trail," is easy to follow
+7. If no one ever deviated from this pattern we would not need to do anything more -- as an aside, APO and CTV do that: they make a covenant so that block producers *have to* follow this pattern, anything else is an invalid transaction
+8. But we do not have APO or CTV so I do this instead: suppose a rogue miner takes the money from the ACSA and sends it to his wallet
+9. That is detectable by anyone syncing the chain because the trail mentioned in step 6 suddenly stops
+10. So what they do now is, they rely on this fallback mechanism: block producers can bid to put a new utxo in the ACSA to serve as the new "recovery point" for the trail
+11. Since many people can create this "recovery point," nodes must come to consensus on which one to follow
+12. The consensus mechanism is a first-seen rule: run through every transaction after the theft searching for the first transaction that puts money in the ACSA, and the resulting utxo is, by consensus, the recovery point
+13. Return to step 4 and loop forever
+14. Voila, the sidechain never dies and nodes can always come to consensus on its next block
+
 # What works
 
 Creating a spacechain works (yay!).
