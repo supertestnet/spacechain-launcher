@@ -16,7 +16,7 @@ https://www.youtube.com/watch?v=ajzy_8Nibv8
 3. She creates a bitcoin transaction that commits to that hash
 4. For its subsequent blocks she repeats steps 2 & 3 but now each one must "point to" its parent
 5. She uses a p2p messaging network to share the blocks she created with other people
-6. To ensure that anyone can compete to make more blocks in case Alice stops (or censors someone), the utxo created in step 3 must use an anyone_can_spend address (the ACSA)
+6. To ensure that anyone can compete to make more blocks in case Alice stops (or censors someone), the utxo created in step 3 must use an anyone_can_spend address -- the ACSA
 7. As long as sidechain "block producers" spend *from* the ACSA *to* the ACSA, the order of sidechain blocks, their "trail," is easy to follow (needless to say, other block producers use the same p2p messaging network Alice uses to share their own blocks with other people)
 8. If no one ever deviated from this pattern we would not need to do anything more -- as an aside, sighash_anyprevout and op_check_template_verify do that: they make a covenant so that block producers *have to* follow this pattern, anything else is an invalid transaction
 9. But we do not have sighash_anyprevout or op_check_template_verify so I do this instead: suppose a rogue miner takes the money from the ACSA and sends it to his wallet
