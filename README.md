@@ -14,7 +14,7 @@ https://www.youtube.com/watch?v=ajzy_8Nibv8
 1. Alice wants to make a bitcoin sidechain
 2. For its first block she creates some data and hashes it
 3. She creates a bitcoin transaction that commits to that hash
-4. For its subsequent blocks she repeats steps 2 & 3 except now each one must "point to" its parent
+4. For its subsequent blocks she repeats steps 2 & 3 but now each one must "point to" its parent
 5. She uses a p2p messaging network to share the blocks she created with other people
 6. To ensure that anyone can compete to make more blocks in case Alice stops (or censors someone), the utxo created in step 3 must use an anyone_can_spend address (the ACSA)
 7. As long as sidechain "block producers" spend *from* the ACSA *to* the ACSA, the order of sidechain blocks, their "trail," is easy to follow (needless to say, other block producers use the same p2p messaging network Alice uses to share their own blocks with other people)
