@@ -2589,7 +2589,7 @@
             var pubKey  = keypair.publicKey.toString( "hex" );
             pubKey      = pubKey.substring( 2 );
             console.log( pubKey );
-            var relay = "wss://nostr.zebedee.cloud";
+            var relay = "wss://relay1.nostrchat.io";
             var socket = new WebSocket( relay );
 
             async function openConnection( e ) {
