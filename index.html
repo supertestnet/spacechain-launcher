@@ -1037,7 +1037,7 @@
                 return tx_num;
             }
 
-            async function getAllTxsInvolvingAddress2( address ) {
+            async function getAllTxsInvolvingAddress( address ) {
                 console.log( "address:", address );
                 var tx_num = await getNumberOfTxsInvolvingAddress( address );
                 console.log( "txnum:", tx_num );
