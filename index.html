@@ -1037,21 +1037,25 @@
                 return tx_num;
             }
 
-            async function getAllTxsInvolvingAddress( address ) {
+            async function getAllTxsInvolvingAddress2( address ) {
                 console.log( "address:", address );
                 var tx_num = await getNumberOfTxsInvolvingAddress( address );
+                console.log( "txnum:", tx_num );
                 var txs = [];
                 var last_seen = "";
-                var i; for ( i=0; i<tx_num; i = i + 25 ) {
+                var num_of_pages = Math.ceil( tx_num / 25 );
+                var i; for ( i=0; i<num_of_pages; i++ ) {
+                    console.log( "i:", i );
                     if ( last_seen ) {
-                        var url = `https://mempool.space/testnet/api/address/${address}/txs/${last_seen}`;
+                        var url = `https://mempool.space/testnet/api/address/${address}/txs/chain/${last_seen}`;
                     } else {
                         var url = `https://mempool.space/testnet/api/address/${address}/txs`;
                     }
                     var info = await getData( url );
-                    if ( i>1 ) last_seen = JSON.parse( info )[ JSON.parse( info ).length - 1 ][ "txid" ];
+                    console.log( "here it is:", info );
+                    last_seen = JSON.parse( info )[ JSON.parse( info ).length - 1 ][ "txid" ];
                     JSON.parse( info ).forEach( function( item ) {
-                        txs.push( item )
+                        txs.push( item );
                     });
                     if ( $( '.spaceblocks_loading_percent' ) ) {
                         $( '.spaceblocks_loading_percent' ).innerText = Math.floor( ( txs.length / tx_num ) * 10000 ) / 100;
