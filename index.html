@@ -844,14 +844,14 @@
                         if ( !note_i_seek ) {
                             block_i_seek = sessionStorage[ "block_being_sought" ];
                             var current_time = Math.floor( Date.now() / 1000 );
-                            console.log( block_i_seek );
+                            if ( block_i_seek ) console.log( block_i_seek );
                             if ( started_waiting_time + num_of_seconds_to_wait < current_time && !block_i_seek ) {
                                 resolve( "time_is_up" );
                             }
                             setTimeout( async function() {
                                 var msg = await isNoteSetYet( block_i_seek );
-                                if ( msg ) {
-                                    console.log( "a miner gave it to me!" );
+                                if ( msg && msg != "time_is_up" ) {
+                                    console.log( "a miner gave it to me!", msg );
                                 }
                                 resolve( msg );
                             }, 100 );
