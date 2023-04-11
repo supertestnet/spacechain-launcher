@@ -1387,7 +1387,7 @@
                 sessionStorage[ "block_being_sought" ] = "";
                 var getting_my_block = await requestBlock2( 5, blockhash );
                 //console.log( "run this:", `var block = await requestBlock2( 5, "${blockhash}" );` );
-                if ( getting_my_block == "time_is_up" ) {if ( block ) console.log( "here is the block:", block );return "bad chain";}
+                if ( getting_my_block == "time_is_up" ) return "bad chain";
                 var parent_of_block = JSON.parse( getting_my_block )[ 0 ].substring( 0, 64 );
                 if ( parent_of_block == "0000000000000000000000000000000000000000000000000000000000000000" ) return chain;
                 return traceHistory( candidate_anchors, parent_of_block, chain );
